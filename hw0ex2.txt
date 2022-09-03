@@ -1,7 +1,0 @@
-png 5 8 hw0ex2.png
-
-xyrgb 1     2   127 255 255      
-xyc             2 3 #aaaaff
-nothing here 23425 56
-xyrgb 4 5 200 120 3
-xyrgb 2 4 0 0 0

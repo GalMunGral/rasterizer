@@ -2,9 +2,11 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
-#include "image.hpp"
+#include "display.hpp"
+#include "rasterize.hpp"
 
-image disp;
+display disp;
+rasterizer raster;
 std::string filename;
 
 int main(int argc, char *argv[])
@@ -26,29 +28,35 @@ int main(int argc, char *argv[])
             ss >> width >> height >> filename;
             disp.resize(width, height);
         }
-        else if (cmd == "xyrgb")
+        else if (cmd == "xyzw")
         {
-            int x, y, r, g, b;
-            ss >> x >> y >> r >> g >> b;
-            disp.set_color(x, y, r, g, b, 0xff);
+            double x, y, z, w;
+            ss >> x >> y >> z >> w;
+            raster.add_vertex(x, y, z, w);
         }
-        else if (cmd == "xyc")
+        else if (cmd == "rgb")
         {
-            int x, y;
-            std::string hex_color;
-            ss >> x >> y >> hex_color;
-            disp.set_color(x, y, hex_color);
+            double r, g, b;
+            ss >> r >> g >> b;
+            raster.set_color(r, g, b);
+        }
+        else if (cmd == "tri")
+        {
+            int i1, i2, i3;
+            ss >> i1 >> i2 >> i3;
+            raster.draw_triangle(disp, i1, i2, i3);
         }
     }
     int err;
     if ((err = lodepng_encode_file(filename.c_str(), disp.data(), disp.width, disp.height, LCT_RGBA, 8)))
     {
-        for (int i = 0; i < disp.width * disp.height * 4; ++i) {
+        for (int i = 0; i < disp.width * disp.height * 4; ++i)
+        {
             std::cout << disp.data()[i];
         }
         std::cerr << lodepng_error_text(err) << '\n';
         return -1;
     };
-    std::cout << err;
+
     return 0;
 }

@@ -1,14 +1,14 @@
 .PHONY: build, run, submit, test, clean
 
 CC = g++
-CFLAGS = -Wall -Wextra -pedantic -O3
+CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3
 
 run: program
 	./program $(file)
 
 build: program
 
-program: main.o lodepng.o image.o
+program: main.o lodepng.o display.o rasterize.o
 	${CC} $(CFLAGS) $^ -o $@
 
 submit: submission.tar

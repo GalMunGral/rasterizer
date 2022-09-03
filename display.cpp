@@ -1,6 +1,6 @@
 #include <iostream>
 #include <stdexcept>
-#include "image.hpp"
+#include "display.hpp"
 
 inline unsigned char hex(char c)
 {
@@ -12,14 +12,14 @@ inline unsigned char byte(std::string &s, int i)
     return hex(s[i]) << 4 | hex(s[i + 1]);
 }
 
-void image::resize(int w, int h)
+void display::resize(int w, int h)
 {
     width = w;
     height = h;
     buffer.resize(w * h * 4);
 }
 
-unsigned char &image::operator()(int x, int y, int channel)
+unsigned char &display::operator()(int x, int y, int channel)
 {
     if (x < 0 || x >= width || y < 0 || y >= height)
     {
@@ -28,12 +28,12 @@ unsigned char &image::operator()(int x, int y, int channel)
     return buffer[(y * width + x) * 4 + channel];
 }
 
-unsigned char *image::data()
+unsigned char *display::data()
 {
     return buffer.data();
 }
 
-void image::set_color(int x, int y, int r, int g, int b, int a)
+void display::set_color(int x, int y, int r, int g, int b, int a)
 {
     buffer[(y * width + x) * 4 + 0] = r;
     buffer[(y * width + x) * 4 + 1] = g;
@@ -41,7 +41,7 @@ void image::set_color(int x, int y, int r, int g, int b, int a)
     buffer[(y * width + x) * 4 + 3] = a;
 }
 
-void image::set_color(int x, int y, std::string &hex_color)
+void display::set_color(int x, int y, std::string &hex_color)
 {
     set_color(x, y, byte(hex_color, 1), byte(hex_color, 3), byte(hex_color, 5), 0xff);
 }

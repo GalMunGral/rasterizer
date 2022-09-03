@@ -1,8 +1,0 @@
-png 5 8 hw0ex1.png
-xyrgb 0 1 255 255 255
-xyrgb 1 2 127 255 255
-xyc 2 3 #aaaaff
-xyc 3 4 #ffffff
-xyrgb 4 5 200 120 3
-xyrgb 3 3 0 0 0
-xyrgb 2 4 0 0 0
