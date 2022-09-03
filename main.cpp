@@ -67,6 +67,10 @@ int main(int argc, char *argv[])
             ss >> level;
             raster.enable_fsaa(level);
         }
+        else if (cmd == "cull")
+        {
+            raster.cull_face();
+        }
     }
     raster.output();
     int err;

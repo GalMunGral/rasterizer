@@ -22,6 +22,7 @@ public:
     void enable_perspective();
     void enable_frustum_clipping();
     void enable_fsaa(int level);
+    void cull_face();
 
 private:
     double r = 0xff, g = 0xff, b = 0xff;
@@ -30,6 +31,7 @@ private:
     bool srgb_enabled;
     bool perspective_enabled;
     bool frustum_clipping_enabled;
+    bool cull_enabled;
     frame_buffer<unsigned char> output_buf;
     frame_buffer<double> render_buf;
     depth_buffer depth_buf;

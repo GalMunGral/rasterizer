@@ -86,13 +86,6 @@ void rasterizer::resize(int w, int h)
     depth_buf = depth_buffer(w * fsaa_level, h * fsaa_level);
 }
 
-void rasterizer::enable_fsaa(int level)
-{
-    fsaa_level = level;
-    render_buf = frame_buffer<double>(width * level, height * level);
-    depth_buf = depth_buffer(width * level, height * level);
-}
-
 void rasterizer::enable_depth()
 {
     depth_enabled = true;
@@ -121,6 +114,18 @@ void rasterizer::enable_perspective()
 void rasterizer::enable_frustum_clipping()
 {
     frustum_clipping_enabled = true;
+}
+
+void rasterizer::enable_fsaa(int level)
+{
+    fsaa_level = level;
+    render_buf = frame_buffer<double>(width * level, height * level);
+    depth_buf = depth_buffer(width * level, height * level);
+}
+
+void rasterizer::cull_face()
+{
+    cull_enabled = true;
 }
 
 void rasterizer::add_vec(double x, double y, double z, double w)
@@ -249,13 +254,27 @@ void rasterizer::draw_triangle(std::vector<vec> vertices)
     }
 }
 
+vec cross_product(vec a, vec b)
+{
+    return {
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]};
+}
 void rasterizer::draw_triangle(int i1, int i2, int i3)
 {
-    std::vector<vec> vertices{ith_vec(i1), ith_vec(i2), ith_vec(i3)};
+    std::vector<vec> vs{ith_vec(i1), ith_vec(i2), ith_vec(i3)};
+
+    if (cull_enabled && cross_product(vs[1] - vs[0], vs[2] - vs[1])[2] >= 0)
+    {
+        // facing down
+        return;
+    }
+
     if (frustum_clipping_enabled)
     {
         std::vector<vec> outside, inside;
-        for (auto &v : vertices)
+        for (auto &v : vs)
         {
             if (clipped(v))
             {
@@ -283,12 +302,12 @@ void rasterizer::draw_triangle(int i1, int i2, int i3)
         }
         else
         {
-            draw_triangle(vertices);
+            draw_triangle(vs);
         }
     }
     else
     {
-        draw_triangle(vertices);
+        draw_triangle(vs);
     }
 }
 
