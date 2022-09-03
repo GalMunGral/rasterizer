@@ -82,6 +82,16 @@ void rasterizer::enable_srgb()
     srgb_enabled = true;
 }
 
+void rasterizer::enable_perspective()
+{
+    perspective_enabled = true;
+}
+
+void rasterizer::enable_frustum_clipping()
+{
+    frustum_clipping_enabled = true;
+}
+
 void rasterizer::add_vertex(double x, double y, double z, double w)
 {
     vertices.push_back({x, y, z, w, r, g, b, 0xff, 0, 0});
@@ -108,9 +118,16 @@ void dda_scan(vertex a, vertex b, int i, Operation f)
     }
 }
 
-void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
+inline bool clipped(vertex &v)
 {
-    std::vector<vertex> vertices{ith_vertex(i1), ith_vertex(i2), ith_vertex(i3)};
+    return (v[3] <= 0 ||
+            v[0] < -v[3] || v[3] > v[3] ||
+            v[1] < -v[3] || v[1] > v[3] ||
+            v[2] < -v[3] || v[2] > v[3]);
+}
+
+void rasterizer::draw_triangle(display &disp, std::vector<vertex> vertices)
+{
     for (auto &v : vertices)
     {
         if (srgb_enabled)
@@ -119,15 +136,19 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
             v[5] = srgb_to_linear(v[5] / 255.0);
             v[6] = srgb_to_linear(v[6] / 255.0);
         }
-        double w = v[3];
-        if (false)
-        {
-            v = v / w;
-            v[3] = 1 / w;
-        }
+        auto w = v[3];
         v[0] = (v[0] / w + 1) * disp.width / 2;
         v[1] = (v[1] / w + 1) * disp.height / 2;
-        v[2] = v[2] / w;
+        v[2] /= w;
+        v[3] = 1 / w;
+        if (perspective_enabled)
+        {
+            // TODO: there are some bugs...
+            for (size_t i = 4; i < v.size(); ++i)
+            {
+                v[i] /= w;
+            }
+        }
     }
 
     sort(vertices.begin(), vertices.end(), [](vertex &a, vertex &b)
@@ -145,13 +166,12 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
 
     auto draw_pixel = [&](vertex v) // copy since it will be modified
     {
-        if (false)
+        if (perspective_enabled)
         {
             for (size_t i = 4; i < v.size(); ++i)
             {
                 v[i] /= v[3];
             }
-            v[3] = 1 / v[3];
         }
         if (srgb_enabled)
         {
@@ -176,6 +196,49 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
     for (size_t i = 0; i < bound1.size(); ++i)
     {
         dda_scan(bound1[i], bound2[i], 0, draw_pixel);
+    }
+}
+
+vertex intersect(vertex v1, vertex v2)
+{
+    std::cout << v1 << ',' << v2;
+    // throw std::logic_error("I dont know what's going on");
+    return (v2 + v1) / 2;
+}
+
+void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
+{
+    auto v1 = ith_vertex(i1), v2 = ith_vertex(i2), v3 = ith_vertex(i3);
+    std::vector<vertex> outside, inside;
+    for (auto &v : vertices)
+    {
+        if (clipped(v))
+        {
+            outside.push_back(v);
+        }
+        else
+        {
+            inside.push_back(v);
+        }
+    }
+    if (outside.size() == 3)
+        return;
+    if (outside.size() == 2)
+    {
+        auto v1 = intersect(inside[0], outside[0]);
+        auto v2 = intersect(inside[0], outside[1]);
+        draw_triangle(disp, {v1, v2, inside[0]});
+    }
+    else if (outside.size() == 1)
+    {
+        auto v1 = intersect(inside[0], outside[0]);
+        auto v2 = intersect(inside[1], outside[0]);
+        draw_triangle(disp, {inside[0], inside[1], v1});
+        draw_triangle(disp, {inside[0], inside[1], v2});
+    }
+    else
+    {
+        draw_triangle(disp, {v1, v2, v3});
     }
 }
 

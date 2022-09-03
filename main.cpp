@@ -54,6 +54,11 @@ int main(int argc, char *argv[])
         {
             raster.enable_srgb();
         }
+        else if (cmd == "hyp")
+        {
+            // TODO: only after sRGB
+            raster.enable_perspective();
+        }
     }
     int err;
     if ((err = lodepng_encode_file(filename.c_str(), disp.data(), disp.width, disp.height, LCT_RGBA, 8)))
