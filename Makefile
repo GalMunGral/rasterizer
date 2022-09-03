@@ -8,10 +8,13 @@ run: program
 
 build: program
 
-program: main.cpp lodepng.cpp lodepng.h
-	${CC} $(CFLAGS) main.cpp lodepng.cpp -o program
+program: main.o lodepng.o image.o
+	${CC} $(CFLAGS) $^ -o $@
 
 submit: submission.tar
+
+%.o: %.cpp
+	$(CC) -c $(CFLAGS) $^ -o $@
 
 %.tar:
 	tar cf $@ -X .gitignore --exclude-vcs .
@@ -24,4 +27,4 @@ test: submit
 	cd __test__ && $(MAKE) run file=$(file)
 
 clean:
-	rm -rf program *.png *.tar __test__
+	rm -rf *.o program *.png *.tar __test__
