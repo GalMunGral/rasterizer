@@ -2,10 +2,8 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
-#include "display.hpp"
 #include "rasterize.hpp"
 
-display disp;
 rasterizer raster;
 std::string filename;
 
@@ -26,7 +24,7 @@ int main(int argc, char *argv[])
         {
             int width, height;
             ss >> width >> height >> filename;
-            disp.resize(width, height);
+            raster.resize(width, height);
         }
         else if (cmd == "xyzw")
         {
@@ -44,7 +42,7 @@ int main(int argc, char *argv[])
         {
             int i1, i2, i3;
             ss >> i1 >> i2 >> i3;
-            raster.draw_triangle(disp, i1, i2, i3);
+            raster.draw_triangle(i1, i2, i3);
         }
         else if (cmd == "depth")
         {
@@ -63,17 +61,18 @@ int main(int argc, char *argv[])
         {
             raster.enable_frustum_clipping();
         }
-    }
-    int err;
-    if ((err = lodepng_encode_file(filename.c_str(), disp.data(), disp.width, disp.height, LCT_RGBA, 8)))
-    {
-        for (int i = 0; i < disp.width * disp.height * 4; ++i)
+        else if (cmd == "fsaa")
         {
-            std::cout << disp.data()[i];
+            int level;
+            ss >> level;
+            raster.enable_fsaa(level);
         }
+    }
+    raster.output();
+    int err;
+    if ((err = lodepng_encode_file(filename.c_str(), raster.data(), raster.width, raster.height, LCT_RGBA, 8)))
+    {
         std::cerr << lodepng_error_text(err) << '\n';
-        return -1;
     };
-
     return 0;
 }

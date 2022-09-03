@@ -1,2 +1,0 @@
-hw0ex1.txt
-hw0ex2.txt

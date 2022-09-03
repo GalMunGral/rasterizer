@@ -3,12 +3,15 @@
 CC = g++
 CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3
 
+debug: CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O0 -g
+debug: program
+
 run: program
 	./program $(file)
 
 build: program
 
-program: main.o lodepng.o display.o rasterize.o
+program: main.o lodepng.o buffer.o rasterize.o
 	${CC} $(CFLAGS) $^ -o $@
 
 submit: submission.tar
@@ -27,4 +30,4 @@ test: submit
 	cd __test__ && $(MAKE) run file=$(file)
 
 clean:
-	rm -rf *.o program *.tar __test__
+	rm -rf *.o program *.tar __test__ *.png *.txt

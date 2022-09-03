@@ -72,6 +72,27 @@ vec operator/(const vec &v, double k)
     return res;
 }
 
+unsigned char *rasterizer::data()
+{
+    return output_buf.data();
+}
+
+void rasterizer::resize(int w, int h)
+{
+    width = w;
+    height = h;
+    output_buf = frame_buffer<unsigned char>(w, h);
+    render_buf = frame_buffer<double>(w * fsaa_level, h * fsaa_level);
+    depth_buf = depth_buffer(w * fsaa_level, h * fsaa_level);
+}
+
+void rasterizer::enable_fsaa(int level)
+{
+    fsaa_level = level;
+    render_buf = frame_buffer<double>(width * level, height * level);
+    depth_buf = depth_buffer(width * level, height * level);
+}
+
 void rasterizer::enable_depth()
 {
     depth_enabled = true;
@@ -128,6 +149,29 @@ void dda_scan(vec a, vec b, int i, Operation f)
     }
 }
 
+void rasterizer::draw_pixel(vec v) // copy since it will be modified
+{
+    if (perspective_enabled)
+    {
+        for (size_t i = 4; i < v.size(); ++i)
+        {
+            v[i] /= v[3];
+        }
+    }
+    if (depth_enabled)
+    {
+        if (v[2] >= -1.0 && v[2] < depth_buf(v[0], v[1]))
+        {
+            render_buf.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
+            depth_buf(v[0], v[1]) = v[2];
+        }
+    }
+    else
+    {
+        render_buf.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
+    }
+};
+
 vec intersect(vec v1, vec v2)
 {
     mat M = {
@@ -160,7 +204,7 @@ inline bool clipped(vec &v)
             v[2] < -v[3] || v[2] > v[3]);
 }
 
-void rasterizer::draw_triangle(display &disp, std::vector<vec> vertices)
+void rasterizer::draw_triangle(std::vector<vec> vertices)
 {
     for (auto &v : vertices)
     {
@@ -171,8 +215,8 @@ void rasterizer::draw_triangle(display &disp, std::vector<vec> vertices)
             v[6] = srgb_to_linear(v[6] / 255.0);
         }
         auto w = v[3];
-        v[0] = (v[0] / w + 1) * disp.width / 2;
-        v[1] = (v[1] / w + 1) * disp.height / 2;
+        v[0] = (v[0] / w + 1) * render_buf.width / 2;
+        v[1] = (v[1] / w + 1) * render_buf.height / 2;
         v[2] /= w;
         v[3] = 1 / w;
         if (perspective_enabled)
@@ -198,42 +242,14 @@ void rasterizer::draw_triangle(display &disp, std::vector<vec> vertices)
 
     assert(bound1.size() == bound2.size());
 
-    auto draw_pixel = [&](vec v) // copy since it will be modified
-    {
-        if (perspective_enabled)
-        {
-            for (size_t i = 4; i < v.size(); ++i)
-            {
-                v[i] /= v[3];
-            }
-        }
-        if (srgb_enabled)
-        {
-            v[4] = linear_to_srgb(v[4]) * 255.0;
-            v[5] = linear_to_srgb(v[5]) * 255.0;
-            v[6] = linear_to_srgb(v[6]) * 255.0;
-        }
-        if (depth_enabled)
-        {
-            if (v[2] >= -1.0 && v[2] < disp.depth(v[0], v[1]))
-            {
-                disp.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
-                disp.depth(v[0], v[1]) = v[2];
-            }
-        }
-        else
-        {
-            disp.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
-        }
-    };
-
     for (size_t i = 0; i < bound1.size(); ++i)
     {
-        dda_scan(bound1[i], bound2[i], 0, draw_pixel);
+        dda_scan(bound1[i], bound2[i], 0, [&](vec v)
+                 { draw_pixel(v); });
     }
 }
 
-void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
+void rasterizer::draw_triangle(int i1, int i2, int i3)
 {
     std::vector<vec> vertices{ith_vec(i1), ith_vec(i2), ith_vec(i3)};
     if (frustum_clipping_enabled)
@@ -256,23 +272,23 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
         {
             auto v1 = intersect(inside[0], outside[0]);
             auto v2 = intersect(inside[0], outside[1]);
-            draw_triangle(disp, {v1, v2, inside[0]});
+            draw_triangle({v1, v2, inside[0]});
         }
         else if (outside.size() == 1)
         {
             auto v1 = intersect(inside[0], outside[0]);
             auto v2 = intersect(inside[1], outside[0]);
-            draw_triangle(disp, {inside[0], inside[1], v1});
-            draw_triangle(disp, {inside[1], v1, v2});
+            draw_triangle({inside[0], inside[1], v1});
+            draw_triangle({inside[1], v1, v2});
         }
         else
         {
-            draw_triangle(disp, vertices);
+            draw_triangle(vertices);
         }
     }
     else
     {
-        draw_triangle(disp, vertices);
+        draw_triangle(vertices);
     }
 }
 
@@ -286,4 +302,42 @@ vec &rasterizer::ith_vec(int i)
         return v;
     }
     return vertices[i - 1];
+}
+
+void rasterizer::output()
+{
+    for (int y = 0; y < output_buf.height; ++y)
+    {
+        for (int x = 0; x < output_buf.width; ++x)
+        {
+            double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
+            for (int i = 0; i < fsaa_level; ++i)
+            {
+                for (int j = 0; j < fsaa_level; ++j)
+                {
+                    auto src_x = fsaa_level * x + j;
+                    auto src_y = fsaa_level * y + i;
+                    auto alpha = render_buf(src_x, src_y, 3);
+                    r += alpha * render_buf(src_x, src_y, 0);
+                    g += alpha * render_buf(src_x, src_y, 1);
+                    b += alpha * render_buf(src_x, src_y, 2);
+                    a += alpha;
+                }
+            }
+            if (a)
+            {
+                r /= a;
+                g /= a;
+                b /= a;
+                a /= fsaa_level * fsaa_level;
+            }
+            if (srgb_enabled)
+            {
+                r = linear_to_srgb(r) * 255.0;
+                g = linear_to_srgb(g) * 255.0;
+                b = linear_to_srgb(b) * 255.0;
+            }
+            output_buf.set_color(x, y, r, g, b, a);
+        }
+    }
 }
