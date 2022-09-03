@@ -67,6 +67,21 @@ void rasterizer::enable_depth()
     depth_enabled = true;
 }
 
+inline double srgb_to_linear(double c)
+{
+    return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+}
+
+inline double linear_to_srgb(double c)
+{
+    return c <= 0.0031308 ? 12.92 * c : 1.055 * std::pow(c, 1.0 / 2.4) - 0.055;
+}
+
+void rasterizer::enable_srgb()
+{
+    srgb_enabled = true;
+}
+
 void rasterizer::add_vertex(double x, double y, double z, double w)
 {
     vertices.push_back({x, y, z, w, r, g, b, 0xff, 0, 0});
@@ -98,6 +113,12 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
     std::vector<vertex> vertices{ith_vertex(i1), ith_vertex(i2), ith_vertex(i3)};
     for (auto &v : vertices)
     {
+        if (srgb_enabled)
+        {
+            v[4] = srgb_to_linear(v[4] / 255.0);
+            v[5] = srgb_to_linear(v[5] / 255.0);
+            v[6] = srgb_to_linear(v[6] / 255.0);
+        }
         double w = v[3];
         if (false)
         {
@@ -122,7 +143,7 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
 
     assert(bound1.size() == bound2.size());
 
-    auto draw_pixel = [&](vertex &v)
+    auto draw_pixel = [&](vertex v) // copy since it will be modified
     {
         if (false)
         {
@@ -131,6 +152,12 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
                 v[i] /= v[3];
             }
             v[3] = 1 / v[3];
+        }
+        if (srgb_enabled)
+        {
+            v[4] = linear_to_srgb(v[4]) * 255.0;
+            v[5] = linear_to_srgb(v[5]) * 255.0;
+            v[6] = linear_to_srgb(v[6]) * 255.0;
         }
         if (depth_enabled)
         {

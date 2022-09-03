@@ -50,6 +50,10 @@ int main(int argc, char *argv[])
         {
             raster.enable_depth();
         }
+        else if (cmd == "sRGB")
+        {
+            raster.enable_srgb();
+        }
     }
     int err;
     if ((err = lodepng_encode_file(filename.c_str(), disp.data(), disp.width, disp.height, LCT_RGBA, 8)))

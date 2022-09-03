@@ -12,9 +12,11 @@ public:
     void draw_triangle(display &disp, int i1, int i2, int i3);
     void resize(int width, int height);
     void enable_depth();
+    void enable_srgb();
 
 private:
     bool depth_enabled;
+    bool srgb_enabled;
     double r = 0xff, g = 0xff, b = 0xff;
     std::vector<vertex> vertices;
     vertex &ith_vertex(int i);
