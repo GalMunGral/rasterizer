@@ -95,16 +95,19 @@ void dda_foreach(vertex a, vertex b, int i, Operation operate)
 void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
 {
     std::vector<vertex> vertices{ith_vertex(i1), ith_vertex(i2), ith_vertex(i3)};
+    sort(vertices.begin(), vertices.end(), [](vertex &a, vertex &b)
+         { return a[1] <= b[1]; });
     for (auto &v : vertices)
     {
         double w = v[3];
-        // v = v / w;
+        if (false)
+        {
+            v = v / w;
+            v[3] = 1 / w;
+        }
         v[0] = (v[0] / w + 1) * disp.width / 2;
         v[1] = (v[1] / w + 1) * disp.height / 2;
-        // v[3] = 1 / w;
     }
-    sort(vertices.begin(), vertices.end(), [](vertex &a, vertex &b)
-         { return a[1] <= b[1]; });
     std::vector<vertex> bound1, bound2;
     std::cout << "IT 0-2\n";
     dda_foreach(vertices[0], vertices[2], 1, [&](vertex &v)
@@ -135,7 +138,16 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
     {
         std::cout << "IT line\n";
         dda_foreach(bound1[i], bound2[i], 0, [&](vertex &v)
-                    { disp.set_color(v[0], v[1], v[4], v[5], v[6], v[7]); });
+                    {
+                        if (false)
+                        {
+                            for (size_t i = 4; i < v.size(); ++i)
+                            {
+                                v[i] /= v[3];
+                            }
+                            v[3] = 1 / v[3];
+                        }
+                        disp.set_color(v[0], v[1], v[4], v[5], v[6], v[7]); });
     }
 }
 
