@@ -16,7 +16,13 @@ void display::resize(int w, int h)
 {
     width = w;
     height = h;
-    buffer.resize(w * h * 4);
+    frame_buffer.resize(w * h * 4, 0);
+    depth_buffer.resize(w * h, 1.0);
+}
+
+unsigned char *display::data()
+{
+    return frame_buffer.data();
 }
 
 unsigned char &display::operator()(int x, int y, int channel)
@@ -25,20 +31,24 @@ unsigned char &display::operator()(int x, int y, int channel)
     {
         throw std::out_of_range("pixel index out of range");
     }
-    return buffer[(y * width + x) * 4 + channel];
+    return frame_buffer[(y * width + x) * 4 + channel];
 }
 
-unsigned char *display::data()
+double &display::depth(int x, int y)
 {
-    return buffer.data();
+    if (x < 0 || x >= width || y < 0 || y >= height)
+    {
+        throw std::out_of_range("pixel index out of range");
+    }
+    return depth_buffer[y * width + x];
 }
 
 void display::set_color(int x, int y, int r, int g, int b, int a)
 {
-    buffer[(y * width + x) * 4 + 0] = r;
-    buffer[(y * width + x) * 4 + 1] = g;
-    buffer[(y * width + x) * 4 + 2] = b;
-    buffer[(y * width + x) * 4 + 3] = a;
+    frame_buffer[(y * width + x) * 4 + 0] = r;
+    frame_buffer[(y * width + x) * 4 + 1] = g;
+    frame_buffer[(y * width + x) * 4 + 2] = b;
+    frame_buffer[(y * width + x) * 4 + 3] = a;
 }
 
 void display::set_color(int x, int y, std::string &hex_color)

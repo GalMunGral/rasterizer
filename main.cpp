@@ -46,6 +46,10 @@ int main(int argc, char *argv[])
             ss >> i1 >> i2 >> i3;
             raster.draw_triangle(disp, i1, i2, i3);
         }
+        else if (cmd == "depth")
+        {
+            raster.enable_depth();
+        }
     }
     int err;
     if ((err = lodepng_encode_file(filename.c_str(), disp.data(), disp.width, disp.height, LCT_RGBA, 8)))

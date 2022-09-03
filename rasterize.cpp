@@ -62,6 +62,11 @@ vertex operator/(const vertex &v, double k)
     return res;
 }
 
+void rasterizer::enable_depth()
+{
+    depth_enabled = true;
+}
+
 void rasterizer::add_vertex(double x, double y, double z, double w)
 {
     vertices.push_back({x, y, z, w, r, g, b, 0xff, 0, 0});
@@ -101,6 +106,7 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
         }
         v[0] = (v[0] / w + 1) * disp.width / 2;
         v[1] = (v[1] / w + 1) * disp.height / 2;
+        v[2] = v[2] / w;
     }
 
     sort(vertices.begin(), vertices.end(), [](vertex &a, vertex &b)
@@ -126,7 +132,18 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
             }
             v[3] = 1 / v[3];
         }
-        disp.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
+        if (depth_enabled)
+        {
+            if (v[2] >= -1.0 && v[2] < disp.depth(v[0], v[1]))
+            {
+                disp.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
+                disp.depth(v[0], v[1]) = v[2];
+            }
+        }
+        else
+        {
+            disp.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
+        }
     };
 
     for (size_t i = 0; i < bound1.size(); ++i)
