@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
         {
             double x, y, z, w;
             ss >> x >> y >> z >> w;
-            raster.add_vertex(x, y, z, w);
+            raster.add_vec(x, y, z, w);
         }
         else if (cmd == "rgb")
         {
@@ -58,6 +58,10 @@ int main(int argc, char *argv[])
         {
             // TODO: only after sRGB
             raster.enable_perspective();
+        }
+        else if (cmd == "frustum")
+        {
+            raster.enable_frustum_clipping();
         }
     }
     int err;

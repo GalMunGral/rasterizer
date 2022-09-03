@@ -5,58 +5,68 @@
 #include <vector>
 #include "rasterize.hpp"
 
-vertex operator+(const vertex &a, const vertex &b)
+vec operator+(const vec &a, const vec &b)
 {
     auto n = std::min(a.size(), b.size());
-    vertex res(n);
+    vec res(n);
     while (n--)
         res[n] = a[n] + b[n];
     return res;
 }
 
-std::ostream &operator<<(std::ostream &os, const vertex &v)
+std::ostream &operator<<(std::ostream &os, const vec &v)
 {
     for (auto m : v)
     {
         os << m << ',';
     }
-    os << '\n';
     return os;
 }
 
-vertex operator+=(vertex &a, const vertex &b)
+vec operator+=(vec &a, const vec &b)
 {
     a = a + b;
     return a;
 }
 
-vertex operator-(const vertex &a, const vertex &b)
+vec operator-(const vec &a, const vec &b)
 {
     auto n = std::min(a.size(), b.size());
-    vertex res(n);
+    vec res(n);
     while (n--)
         res[n] = a[n] - b[n];
     return res;
 }
 
-vertex operator*(const vertex &v, double k)
+vec operator*(const vec &v, double k)
 {
     auto n = v.size();
-    vertex res(n);
+    vec res(n);
     while (n--)
         res[n] = v[n] * k;
     return res;
 }
 
-vertex operator*(double k, const vertex &v)
+double operator*(const vec &a, const vec &b)
+{
+    double res = 0;
+    auto n = std::min(a.size(), b.size());
+    while (n--)
+    {
+        res += a[n] * b[n];
+    }
+    return res;
+}
+
+vec operator*(double k, const vec &v)
 {
     return v * k;
 }
 
-vertex operator/(const vertex &v, double k)
+vec operator/(const vec &v, double k)
 {
     auto n = v.size();
-    vertex res(n);
+    vec res(n);
     while (n--)
         res[n] = v[n] / k;
     return res;
@@ -92,7 +102,7 @@ void rasterizer::enable_frustum_clipping()
     frustum_clipping_enabled = true;
 }
 
-void rasterizer::add_vertex(double x, double y, double z, double w)
+void rasterizer::add_vec(double x, double y, double z, double w)
 {
     vertices.push_back({x, y, z, w, r, g, b, 0xff, 0, 0});
 }
@@ -105,7 +115,7 @@ void rasterizer::set_color(double _r, double _g, double _b)
 }
 
 template <class Operation>
-void dda_scan(vertex a, vertex b, int i, Operation f)
+void dda_scan(vec a, vec b, int i, Operation f)
 {
     if (a[i] == b[i])
         return;
@@ -118,15 +128,39 @@ void dda_scan(vertex a, vertex b, int i, Operation f)
     }
 }
 
-inline bool clipped(vertex &v)
+vec intersect(vec v1, vec v2)
+{
+    mat M = {
+        {1, 0, 0, 1},
+        {-1, 0, 0, 1},
+        {0, 1, 0, 1},
+        {0, -1, 0, 1},
+        {0, 0, 1, 1},
+        {0, 0, -1, 1},
+    };
+    for (auto &u : M)
+    {
+        auto d1 = u * v1, d2 = u * v2;
+        auto v = (d2 * v1 - d1 * v2) / (d2 - d1);
+        if ((d1 < 0 || d2 < 0) && std::all_of(M.begin(), M.end(), [&](vec &u)
+                                              { return u * v >= 0; }))
+        {
+            // if on an edge/vertex of the frustum, the intersection will be computed multiple times
+            return v;
+        }
+    }
+    throw std::logic_error("Hmmm...");
+}
+
+inline bool clipped(vec &v)
 {
     return (v[3] <= 0 ||
-            v[0] < -v[3] || v[3] > v[3] ||
+            v[0] < -v[3] || v[0] > v[3] ||
             v[1] < -v[3] || v[1] > v[3] ||
             v[2] < -v[3] || v[2] > v[3]);
 }
 
-void rasterizer::draw_triangle(display &disp, std::vector<vertex> vertices)
+void rasterizer::draw_triangle(display &disp, std::vector<vec> vertices)
 {
     for (auto &v : vertices)
     {
@@ -151,20 +185,20 @@ void rasterizer::draw_triangle(display &disp, std::vector<vertex> vertices)
         }
     }
 
-    sort(vertices.begin(), vertices.end(), [](vertex &a, vertex &b)
+    sort(vertices.begin(), vertices.end(), [](vec &a, vec &b)
          { return a[1] <= b[1]; });
 
-    std::vector<vertex> bound1, bound2;
-    dda_scan(vertices[0], vertices[2], 1, [&](vertex &v)
+    std::vector<vec> bound1, bound2;
+    dda_scan(vertices[0], vertices[2], 1, [&](vec &v)
              { bound1.push_back(v); });
-    dda_scan(vertices[0], vertices[1], 1, [&](vertex &v)
+    dda_scan(vertices[0], vertices[1], 1, [&](vec &v)
              { bound2.push_back(v); });
-    dda_scan(vertices[1], vertices[2], 1, [&](vertex &v)
+    dda_scan(vertices[1], vertices[2], 1, [&](vec &v)
              { bound2.push_back(v); });
 
     assert(bound1.size() == bound2.size());
 
-    auto draw_pixel = [&](vertex v) // copy since it will be modified
+    auto draw_pixel = [&](vec v) // copy since it will be modified
     {
         if (perspective_enabled)
         {
@@ -199,50 +233,50 @@ void rasterizer::draw_triangle(display &disp, std::vector<vertex> vertices)
     }
 }
 
-vertex intersect(vertex v1, vertex v2)
-{
-    std::cout << v1 << ',' << v2;
-    // throw std::logic_error("I dont know what's going on");
-    return (v2 + v1) / 2;
-}
-
 void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
 {
-    auto v1 = ith_vertex(i1), v2 = ith_vertex(i2), v3 = ith_vertex(i3);
-    std::vector<vertex> outside, inside;
-    for (auto &v : vertices)
+    std::vector<vec> vertices{ith_vec(i1), ith_vec(i2), ith_vec(i3)};
+    if (frustum_clipping_enabled)
     {
-        if (clipped(v))
+        std::vector<vec> outside, inside;
+        for (auto &v : vertices)
         {
-            outside.push_back(v);
+            if (clipped(v))
+            {
+                outside.push_back(v);
+            }
+            else
+            {
+                inside.push_back(v);
+            }
+        }
+        if (outside.size() == 3)
+            return;
+        if (outside.size() == 2)
+        {
+            auto v1 = intersect(inside[0], outside[0]);
+            auto v2 = intersect(inside[0], outside[1]);
+            draw_triangle(disp, {v1, v2, inside[0]});
+        }
+        else if (outside.size() == 1)
+        {
+            auto v1 = intersect(inside[0], outside[0]);
+            auto v2 = intersect(inside[1], outside[0]);
+            draw_triangle(disp, {inside[0], inside[1], v1});
+            draw_triangle(disp, {inside[1], v1, v2});
         }
         else
         {
-            inside.push_back(v);
+            draw_triangle(disp, vertices);
         }
-    }
-    if (outside.size() == 3)
-        return;
-    if (outside.size() == 2)
-    {
-        auto v1 = intersect(inside[0], outside[0]);
-        auto v2 = intersect(inside[0], outside[1]);
-        draw_triangle(disp, {v1, v2, inside[0]});
-    }
-    else if (outside.size() == 1)
-    {
-        auto v1 = intersect(inside[0], outside[0]);
-        auto v2 = intersect(inside[1], outside[0]);
-        draw_triangle(disp, {inside[0], inside[1], v1});
-        draw_triangle(disp, {inside[0], inside[1], v2});
     }
     else
     {
-        draw_triangle(disp, {v1, v2, v3});
+        draw_triangle(disp, vertices);
     }
 }
 
-vertex &rasterizer::ith_vertex(int i)
+vec &rasterizer::ith_vec(int i)
 {
     if (i == 0)
         throw std::out_of_range("index cannot be 0");
