@@ -75,7 +75,7 @@ void rasterizer::set_color(double _r, double _g, double _b)
 }
 
 template <class Operation>
-void dda_foreach(vertex a, vertex b, int i, Operation f)
+void dda_scan(vertex a, vertex b, int i, Operation f)
 {
     if (a[i] == b[i])
         return;
@@ -107,12 +107,12 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
          { return a[1] <= b[1]; });
 
     std::vector<vertex> bound1, bound2;
-    dda_foreach(vertices[0], vertices[2], 1, [&](vertex &v)
-                { bound1.push_back(v); });
-    dda_foreach(vertices[0], vertices[1], 1, [&](vertex &v)
-                { bound2.push_back(v); });
-    dda_foreach(vertices[1], vertices[2], 1, [&](vertex &v)
-                { bound2.push_back(v); });
+    dda_scan(vertices[0], vertices[2], 1, [&](vertex &v)
+             { bound1.push_back(v); });
+    dda_scan(vertices[0], vertices[1], 1, [&](vertex &v)
+             { bound2.push_back(v); });
+    dda_scan(vertices[1], vertices[2], 1, [&](vertex &v)
+             { bound2.push_back(v); });
 
     assert(bound1.size() == bound2.size());
 
@@ -131,7 +131,7 @@ void rasterizer::draw_triangle(display &disp, int i1, int i2, int i3)
 
     for (size_t i = 0; i < bound1.size(); ++i)
     {
-        dda_foreach(bound1[i], bound2[i], 0, draw_pixel);
+        dda_scan(bound1[i], bound2[i], 0, draw_pixel);
     }
 }
 
