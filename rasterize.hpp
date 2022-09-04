@@ -10,13 +10,14 @@ using mat = std::vector<std::vector<double>>;
 class rasterizer
 {
 public:
+    rasterizer();
     int width = 0, height = 0;
-    std::vector<unsigned char> &data();
     void resize(int w, int h);
     void add_vec(double x, double y, double z, double w);
     void set_color(double r, double g, double b, double a);
     void set_texcoord(double s, double t);
     void output();
+    std::vector<unsigned char> &data();
     void draw_pixel(vec pixel);
     void draw_point(int i, double size);
     void draw_triangle(int i1, int i2, int i3);
@@ -33,7 +34,7 @@ public:
     void enable_decals();
 
 private:
-    double r = 255.0, g = 255.0, b = 255.0, a = 1.0, s = 0.0, t = 0.0;
+    double r, g, b, a, s, t;
     int fsaa_level = 1;
     bool depth_enabled;
     bool srgb_enabled;
@@ -48,5 +49,8 @@ private:
     depth_buffer depth_buf;
     std::vector<vec> vertices;
     vec &nth_vertex(int i);
+    std::vector<vec> clip_planes;
+    bool visible(const vec &vertex);
+    vec intersect(const vec &v_in, const vec &v_out);
     vec project(vec in);
 };
