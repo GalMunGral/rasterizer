@@ -205,6 +205,11 @@ void rasterizer::enable_decals()
     decals_enabled = true;
 }
 
+void rasterizer::clip(double p1, double p2, double p3, double p4)
+{
+    clip_planes.push_back({p1, p2, p3, p4});
+}
+
 vec rasterizer::project(vec in)
 {
     vec out(in);
@@ -265,8 +270,8 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         }
     }
 
-    int x = v[0], y = v[1];
-    if (x < 0 || x >= width || y < 0 || y >= height)
+    unsigned x = v[0], y = v[1];
+    if (x < 0 || x >= render_buf.width || y < 0 || y >= render_buf.height)
     {
         // TODO: this should only happen when drawing points
         return;
@@ -287,10 +292,10 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         int y = static_cast<int>(t * texture.height + 0.5) % texture.height;
 
         cs = {
-            static_cast<double>(texture(x, y, 0)),
-            static_cast<double>(texture(x, y, 1)),
-            static_cast<double>(texture(x, y, 2)),
-            static_cast<double>(texture(x, y, 3) / 255.0)};
+            texture(x, y, 0) / 1.0,
+            texture(x, y, 1) / 1.0,
+            texture(x, y, 2) / 1.0,
+            texture(x, y, 3) / 255.0};
 
         if (srgb_enabled)
         {
@@ -326,54 +331,30 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
 
 bool rasterizer::visible(const vec &vertex)
 {
-    return vertex[3] > 0 ||
+    return vertex[3] > 0 &&
            std::all_of(clip_planes.begin(), clip_planes.end(), [&](vec &p)
                        { return p * vertex >= 0; });
 }
 
-vec rasterizer::intersect(const vec &v1, const vec &v2)
+vec rasterizer::intersect(const vec &v_in, const vec &v_out)
 {
-    mat M = {
-        {1, 0, 0, 1},
-        {-1, 0, 0, 1},
-        {0, 1, 0, 1},
-        {0, -1, 0, 1},
-        {0, 0, 1, 1},
-        {0, 0, -1, 1},
-    };
-    for (auto &u : M)
+    // need to search, not all results are valid
+    for (auto &p : clip_planes)
     {
-        auto d1 = u * v1, d2 = u * v2;
-        auto v = (d2 * v1 - d1 * v2) / (d2 - d1);
-        if ((d1 < 0 || d2 < 0) && std::all_of(M.begin(), M.end(), [&](vec &u)
-                                              { return u * v >= 0; }))
+        auto d_in = p * v_in, d_out = p * v_out;
+        if (d_out >= 0)
+            continue;
+        auto v = (d_out * v_in - d_in * v_out) / (d_out - d_in);
+        if (visible(v))
         {
-            // if on an edge/vertex of the frustum, the intersection will be computed multiple times
+            // if on an edge or vertex of the frustum,
+            // the intersection point might be computed multiple times
+            // from different planes
             return v;
         }
     }
-    throw std::logic_error("Hmmm...");
+    throw std::logic_error("there must be one intersection point");
 }
-
-// vec rasterizer::intersect(const vec &v_in, const vec &v_out)
-// {
-//     // need to search, not all results are valid
-//     for (auto &p : clip_planes)
-//     {
-//         auto d_in = p * v_in, d_out = p * v_out;
-//         if (d_out >= 0)
-//             continue;
-//         auto v = (d_out * v_in - d_in * v_out) / (d_out - d_in);
-//         if (visible(v))
-//         {
-//             // if on an edge or vertex of the frustum,
-//             // the intersection point might be computed multiple times
-//             // from different planes
-//             return v;
-//         }
-//     }
-//     throw std::logic_error("there must be one intersection point");
-// }
 
 vec cross_product(vec a, vec b)
 {
@@ -393,7 +374,7 @@ void rasterizer::draw_triangle(int i1, int i2, int i3)
         return;
     }
 
-    if (frustum_clipping_enabled)
+    if (frustum_clipping_enabled || true)
     {
         std::vector<vec> out, in;
         for (auto &v : vs)
@@ -407,6 +388,7 @@ void rasterizer::draw_triangle(int i1, int i2, int i3)
                 out.push_back(v);
             }
         }
+        std::cout << in.size() << ',' << out.size() << '\n';
         if (out.size() == 3)
         {
             return;
@@ -474,7 +456,6 @@ void rasterizer::draw_point(int i, double size)
 void rasterizer::output()
 {
     int out_height = output_buf.height, out_width = output_buf.width;
-    std::cout << out_height << ',' << out_width;
     for (int x = 0; x < out_width; ++x)
     {
         for (int y = 0; y < out_height; ++y)
@@ -507,7 +488,6 @@ void rasterizer::output()
                 b = linear_to_srgb(b) * 255.0;
             }
             a *= 255.0;
-            std::cout << x << ',' << y << r << ',' << g << ',' << b << '\n';
             output_buf.set_color(x, y, r, g, b, a);
         }
     }

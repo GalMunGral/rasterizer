@@ -118,6 +118,13 @@ int main(int argc, char *argv[])
         {
             raster.enable_decals();
         }
+        else if (cmd == "clipplane")
+        {
+            double p1, p2, p3, p4;
+            ss >> p1 >> p2 >> p3 >> p4;
+            std::cout << "CLIP" << p1 << ',' << p2 << ',' << p3 << ',' << p4 << '\n';
+            raster.clip(p1, p2, p3, p4);
+        }
     }
     raster.output();
     unsigned err;

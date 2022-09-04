@@ -32,6 +32,7 @@ public:
     void enable_texture();
     void disable_texture();
     void enable_decals();
+    void clip(double p1, double p2, double p3, double p4);
 
 private:
     double r, g, b, a, s, t;
