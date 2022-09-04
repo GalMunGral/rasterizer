@@ -122,8 +122,13 @@ int main(int argc, char *argv[])
         {
             double p1, p2, p3, p4;
             ss >> p1 >> p2 >> p3 >> p4;
-            std::cout << "CLIP" << p1 << ',' << p2 << ',' << p3 << ',' << p4 << '\n';
             raster.clip(p1, p2, p3, p4);
+        }
+        else if (cmd == "line")
+        {
+            int i1, i2;
+            ss >> i1 >> i2;
+            raster.draw_line(i1, i2);
         }
     }
     raster.output();

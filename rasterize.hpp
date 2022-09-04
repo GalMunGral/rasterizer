@@ -22,6 +22,8 @@ public:
     void draw_point(int i, double size);
     void draw_triangle(int i1, int i2, int i3);
     void draw_triangle(vec v1, vec v2, vec v3);
+    void draw_triangle_clipped(vec v1, vec v2, vec v3, std::vector<vec> &clip);
+    void draw_line(int i1, int i2);
     void enable_depth();
     void enable_srgb();
     void enable_perspective();
@@ -51,7 +53,7 @@ private:
     std::vector<vec> vertices;
     vec &nth_vertex(int i);
     std::vector<vec> clip_planes;
-    bool visible(const vec &vertex);
-    vec intersect(const vec &v_in, const vec &v_out);
+    bool visible(const vec vertex, const std::vector<vec> &clip);
+    vec intersect(const vec v_in, const vec v_out, const std::vector<vec> &clip);
     vec project(vec in);
 };
