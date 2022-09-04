@@ -157,7 +157,6 @@ void dda_scan(vec a, vec b, int i, Operation f)
 
 void rasterizer::draw_pixel(vec v) // copy since it will be modified
 {
-    // std::cout << v << '\n';
     if (perspective_enabled)
     {
         for (size_t i = 4; i < v.size(); ++i)
@@ -165,17 +164,17 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
             v[i] /= v[3];
         }
     }
+
+    // "over" operator
     int x = v[0], y = v[1];
     auto rs = v[4], gs = v[5], bs = v[6], as = v[7];
     auto rd = render_buf(x, y, 0), gd = render_buf(x, y, 1), bd = render_buf(x, y, 2), ad = render_buf(x, y, 3);
     auto a = as + ad * (1 - as);
-    // std::cout << as << ',' << ad << ',' << a << '\n';
     auto ws = as / a, wd = (ad * (1 - as)) / a;
     auto r = ws * rs + wd * rd;
     auto g = ws * gs + wd * gd;
     auto b = ws * bs + wd * bd;
 
-    std::cout << "computed" << a << '\n';
     if (depth_enabled)
     {
         if (v[2] >= -1.0 && v[2] < depth_buf(v[0], v[1]))
