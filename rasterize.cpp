@@ -210,14 +210,14 @@ void dda_scan(vec a, vec b, int i, Operation f)
     }
 }
 
-vec alpha_blend(vec src, vec dst)
+inline vec alpha_blend(vec src, vec dst)
 {
     // "over" operator
-    auto a = src[3] + dst[3] * (1 - src[3]);
-    auto ws = src[3] / a, wd = (dst[3] * (1 - src[3])) / a;
-    auto r = ws * src[0] + wd * dst[0];
-    auto g = ws * src[1] + wd * dst[1];
-    auto b = ws * src[2] + wd * dst[2];
+    auto a = src[3] + dst[3] * (1.0 - src[3]);
+    auto as = src[3], ad = (dst[3] * (1.0 - src[3]));
+    auto r = (as * src[0] + ad * dst[0]) / a;
+    auto g = (as * src[1] + ad * dst[1]) / a;
+    auto b = (as * src[2] + ad * dst[2]) / a;
     return {r, g, b, a};
 }
 
