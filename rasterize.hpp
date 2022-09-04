@@ -35,7 +35,7 @@ public:
 
 private:
     double r, g, b, a, s, t;
-    int fsaa_level = 1;
+    int fsaa_level;
     bool depth_enabled;
     bool srgb_enabled;
     bool perspective_enabled;

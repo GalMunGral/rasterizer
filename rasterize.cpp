@@ -84,6 +84,7 @@ rasterizer::rasterizer()
     : width{0}, height{0},
       r{255.0}, g{255.0}, b{255.0}, a{1.0},
       s{0.0}, t{0.0},
+      fsaa_level{1},
       clip_planes{
           {1.0, 0, 0, 1.0},
           {-1.0, 0, 0, 1.0},
@@ -93,6 +94,7 @@ rasterizer::rasterizer()
           {0, 0, -1.0, 1.0},
       }
 {
+    // std::cout << "FSAA::::" << fsaa_level;
 }
 
 std::vector<unsigned char> &rasterizer::data()
@@ -329,25 +331,49 @@ bool rasterizer::visible(const vec &vertex)
                        { return p * vertex >= 0; });
 }
 
-vec rasterizer::intersect(const vec &v_in, const vec &v_out)
+vec rasterizer::intersect(const vec &v1, const vec &v2)
 {
-    // need to search, not all results are valid
-    for (auto &p : clip_planes)
+    mat M = {
+        {1, 0, 0, 1},
+        {-1, 0, 0, 1},
+        {0, 1, 0, 1},
+        {0, -1, 0, 1},
+        {0, 0, 1, 1},
+        {0, 0, -1, 1},
+    };
+    for (auto &u : M)
     {
-        auto d_in = p * v_in, d_out = p * v_out;
-        if (d_out >= 0)
-            continue;
-        auto v = (d_out * v_in - d_in * v_out) / (d_out - d_in);
-        if (visible(v))
+        auto d1 = u * v1, d2 = u * v2;
+        auto v = (d2 * v1 - d1 * v2) / (d2 - d1);
+        if ((d1 < 0 || d2 < 0) && std::all_of(M.begin(), M.end(), [&](vec &u)
+                                              { return u * v >= 0; }))
         {
-            // if on an edge or vertex of the frustum,
-            // the intersection point might be computed multiple times
-            // from different planes
+            // if on an edge/vertex of the frustum, the intersection will be computed multiple times
             return v;
         }
     }
-    throw std::logic_error("there must be one intersection point");
+    throw std::logic_error("Hmmm...");
 }
+
+// vec rasterizer::intersect(const vec &v_in, const vec &v_out)
+// {
+//     // need to search, not all results are valid
+//     for (auto &p : clip_planes)
+//     {
+//         auto d_in = p * v_in, d_out = p * v_out;
+//         if (d_out >= 0)
+//             continue;
+//         auto v = (d_out * v_in - d_in * v_out) / (d_out - d_in);
+//         if (visible(v))
+//         {
+//             // if on an edge or vertex of the frustum,
+//             // the intersection point might be computed multiple times
+//             // from different planes
+//             return v;
+//         }
+//     }
+//     throw std::logic_error("there must be one intersection point");
+// }
 
 vec cross_product(vec a, vec b)
 {
@@ -447,10 +473,10 @@ void rasterizer::draw_point(int i, double size)
 
 void rasterizer::output()
 {
-    int h = output_buf.height, w = output_buf.height;
-    for (int y = 0; y < h; ++y)
+    int out_height = output_buf.height, out_width = output_buf.width;
+    for (int x = 0; x < out_width; ++x)
     {
-        for (int x = 0; x < w; ++x)
+        for (int y = 0; y < out_height; ++y)
         {
             double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
             for (int i = 0; i < fsaa_level; ++i)
