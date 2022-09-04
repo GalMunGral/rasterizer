@@ -98,6 +98,13 @@ int main(int argc, char *argv[])
             raster.enable_texture();
             raster.draw_triangle(i1, i2, i3);
         }
+        else if (cmd == "point")
+        {
+            int i;
+            double size;
+            ss >> size >> i;
+            raster.draw_point(i, size);
+        }
     }
     raster.output();
     unsigned err;

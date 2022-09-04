@@ -5,15 +5,6 @@
 #include <vector>
 #include "rasterize.hpp"
 
-vec operator+(const vec &a, const vec &b)
-{
-    auto n = std::min(a.size(), b.size());
-    vec res(n);
-    while (n--)
-        res[n] = a[n] + b[n];
-    return res;
-}
-
 std::ostream &operator<<(std::ostream &os, const vec &v)
 {
     for (auto m : v)
@@ -21,6 +12,19 @@ std::ostream &operator<<(std::ostream &os, const vec &v)
         os << m << ',';
     }
     return os;
+}
+
+vec operator+(const vec &a, const vec &b)
+{
+    auto n = std::max(a.size(), b.size());
+    vec res(n);
+    while (n--)
+    {
+        auto va = n < a.size() ? a[n] : 0;
+        auto vb = n < b.size() ? b[n] : 0;
+        res[n] = va + vb;
+    }
+    return res;
 }
 
 vec operator+=(vec &a, const vec &b)
@@ -34,7 +38,11 @@ vec operator-(const vec &a, const vec &b)
     auto n = std::min(a.size(), b.size());
     vec res(n);
     while (n--)
-        res[n] = a[n] - b[n];
+    {
+        auto va = n < a.size() ? a[n] : 0;
+        auto vb = n < b.size() ? b[n] : 0;
+        res[n] = va - vb;
+    }
     return res;
 }
 
@@ -188,6 +196,11 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
     }
 
     int x = v[0], y = v[1];
+    if (x < 0 || x >= width || y < 0 || y >= height)
+    {
+        // TODO: this should only happen when drawing points
+        return;
+    }
     double rd = render_buf(x, y, 0);
     double gd = render_buf(x, y, 1);
     double bd = render_buf(x, y, 2);
@@ -238,6 +251,15 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
     }
 };
 
+void rasterizer::draw_point(int i, double size)
+{
+    vec o = project(nth_vertex(i));
+    // this might cause points to be off-screen
+    dda_scan(o + vec{-size / 2.0, +size / 2.0}, o + vec{-size / 2, -size / 2.0}, 1, [&](vec l)
+             { dda_scan(l, l + vec{size}, 0, [&](vec p)
+                        { draw_pixel(p); }); });
+}
+
 vec intersect(vec v1, vec v2)
 {
     mat M = {
@@ -270,30 +292,34 @@ inline bool clipped(vec &v)
             v[2] < -v[3] || v[2] > v[3]);
 }
 
-void rasterizer::draw_triangle(std::vector<vec> vertices)
+vec rasterizer::project(vec in)
 {
-    for (auto &v : vertices)
+    vec out(in);
+    if (srgb_enabled)
     {
-        if (srgb_enabled)
+        out[4] = srgb_to_linear(out[4] / 255.0);
+        out[5] = srgb_to_linear(out[5] / 255.0);
+        out[6] = srgb_to_linear(out[6] / 255.0);
+    }
+    auto w = out[3];
+    out[0] = (out[0] / w + 1) * render_buf.width / 2;
+    out[1] = (out[1] / w + 1) * render_buf.height / 2;
+    out[2] /= w;
+    out[3] = 1 / w;
+    if (perspective_enabled)
+    {
+        // TODO: there are some bugs...
+        for (size_t i = 4; i < out.size(); ++i)
         {
-            v[4] = srgb_to_linear(v[4] / 255.0);
-            v[5] = srgb_to_linear(v[5] / 255.0);
-            v[6] = srgb_to_linear(v[6] / 255.0);
-        }
-        auto w = v[3];
-        v[0] = (v[0] / w + 1) * render_buf.width / 2;
-        v[1] = (v[1] / w + 1) * render_buf.height / 2;
-        v[2] /= w;
-        v[3] = 1 / w;
-        if (perspective_enabled)
-        {
-            // TODO: there are some bugs...
-            for (size_t i = 4; i < v.size(); ++i)
-            {
-                v[i] /= w;
-            }
+            out[i] /= w;
         }
     }
+    return out;
+}
+
+void rasterizer::draw_triangle(vec v1, vec v2, vec v3)
+{
+    std::vector<vec> vertices{project(v1), project(v2), project(v3)};
 
     sort(vertices.begin(), vertices.end(), [](vec &a, vec &b)
          { return a[1] <= b[1]; });
@@ -324,7 +350,7 @@ vec cross_product(vec a, vec b)
 }
 void rasterizer::draw_triangle(int i1, int i2, int i3)
 {
-    std::vector<vec> vs{ith_vec(i1), ith_vec(i2), ith_vec(i3)};
+    std::vector<vec> vs{nth_vertex(i1), nth_vertex(i2), nth_vertex(i3)};
 
     if (cull_enabled && cross_product(vs[1] - vs[0], vs[2] - vs[1])[2] >= 0)
     {
@@ -352,27 +378,27 @@ void rasterizer::draw_triangle(int i1, int i2, int i3)
         {
             auto v1 = intersect(inside[0], outside[0]);
             auto v2 = intersect(inside[0], outside[1]);
-            draw_triangle({v1, v2, inside[0]});
+            draw_triangle(v1, v2, inside[0]);
         }
         else if (outside.size() == 1)
         {
             auto v1 = intersect(inside[0], outside[0]);
             auto v2 = intersect(inside[1], outside[0]);
-            draw_triangle({inside[0], inside[1], v1});
-            draw_triangle({inside[1], v1, v2});
+            draw_triangle(inside[0], inside[1], v1);
+            draw_triangle(inside[1], v1, v2);
         }
         else
         {
-            draw_triangle(vs);
+            draw_triangle(vs[0], vs[1], vs[2]);
         }
     }
     else
     {
-        draw_triangle(vs);
+        draw_triangle(vs[0], vs[1], vs[2]);
     }
 }
 
-vec &rasterizer::ith_vec(int i)
+vec &rasterizer::nth_vertex(int i)
 {
     if (i == 0)
         throw std::out_of_range("index cannot be 0");

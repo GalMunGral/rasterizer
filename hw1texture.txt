@@ -1,5 +1,5 @@
 png 120 120 hw1texture.png
-texture splat2.png
+texture text.png
 texcoord -2.0 0.0
 xyzw -1.0 0.0 0.5 1.0
 texcoord 1.0 0.0

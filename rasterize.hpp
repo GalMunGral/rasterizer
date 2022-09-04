@@ -18,8 +18,9 @@ public:
     void set_texcoord(double s, double t);
     void output();
     void draw_pixel(vec pixel);
+    void draw_point(int i, double size);
     void draw_triangle(int i1, int i2, int i3);
-    void draw_triangle(std::vector<vec> vertices);
+    void draw_triangle(vec v1, vec v2, vec v3);
     void enable_depth();
     void enable_srgb();
     void enable_perspective();
@@ -44,5 +45,6 @@ private:
     frame_buffer<double> render_buf;
     depth_buffer depth_buf;
     std::vector<vec> vertices;
-    vec &ith_vec(int i);
+    vec &nth_vertex(int i);
+    vec project(vec in);
 };
