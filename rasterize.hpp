@@ -30,6 +30,7 @@ public:
     void load_texture(std::string &filename);
     void enable_texture();
     void disable_texture();
+    void enable_decals();
 
 private:
     double r = 255.0, g = 255.0, b = 255.0, a = 1.0, s = 0.0, t = 0.0;
@@ -40,6 +41,7 @@ private:
     bool frustum_clipping_enabled;
     bool cull_enabled;
     bool texture_enabled;
+    bool decals_enabled;
     frame_buffer<unsigned char> texture;
     frame_buffer<unsigned char> output_buf;
     frame_buffer<double> render_buf;

@@ -171,6 +171,11 @@ void rasterizer::disable_texture()
     texture_enabled = false;
 }
 
+void rasterizer::enable_decals()
+{
+    decals_enabled = true;
+}
+
 vec rasterizer::project(vec in)
 {
     vec out(in);
@@ -238,11 +243,12 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         return;
     }
 
-    vec color_src, color_dst = {
-                       render_buf(x, y, 0),
-                       render_buf(x, y, 1),
-                       render_buf(x, y, 2),
-                       render_buf(x, y, 3)};
+    vec cs, cd;
+    cd = {
+        render_buf(x, y, 0),
+        render_buf(x, y, 1),
+        render_buf(x, y, 2),
+        render_buf(x, y, 3)};
 
     if (texture_enabled)
     {
@@ -251,28 +257,30 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         int x = static_cast<int>(s * texture.width + 0.5) % texture.width;
         int y = static_cast<int>(t * texture.height + 0.5) % texture.height;
 
-        double rs, gs, bs, as;
-        rs = texture(x, y, 0);
-        gs = texture(x, y, 1);
-        bs = texture(x, y, 2);
-        as = texture(x, y, 3) / 255.0;
+        cs = {
+            static_cast<double>(texture(x, y, 0)),
+            static_cast<double>(texture(x, y, 1)),
+            static_cast<double>(texture(x, y, 2)),
+            static_cast<double>(texture(x, y, 3) / 255.0)};
 
         if (srgb_enabled)
         {
-            rs = srgb_to_linear(rs / 255.0);
-            gs = srgb_to_linear(gs / 255.0);
-            bs = srgb_to_linear(bs / 255.0);
+            cs[0] = srgb_to_linear(cs[0] / 255.0);
+            cs[1] = srgb_to_linear(cs[1] / 255.0);
+            cs[2] = srgb_to_linear(cs[2] / 255.0);
         }
-
-        color_src = {rs, gs, bs, as};
+        if (decals_enabled)
+        {
+            cs = alpha_blend(cs, {v[4], v[5], v[6], v[7]});
+        }
     }
     else
     {
 
-        color_src = {v[4], v[5], v[6], v[7]};
+        cs = {v[4], v[5], v[6], v[7]};
     }
 
-    vec c = alpha_blend(color_src, color_dst);
+    vec c = alpha_blend(cs, cd);
     if (depth_enabled)
     {
         if (v[2] >= -1.0 && v[2] < depth_buf(v[0], v[1]))

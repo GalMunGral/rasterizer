@@ -114,6 +114,10 @@ int main(int argc, char *argv[])
             raster.enable_texture();
             raster.draw_point(i, size);
         }
+        else if (cmd == "decals")
+        {
+            raster.enable_decals();
+        }
     }
     raster.output();
     unsigned err;
