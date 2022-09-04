@@ -4,9 +4,9 @@
 
 depth_buffer::depth_buffer() : depth_buffer(0, 0) {}
 
-depth_buffer::depth_buffer(int w, int h) : width{w}, height{h}, buf(w * h, 1.0) {}
+depth_buffer::depth_buffer(unsigned w, unsigned h) : width{w}, height{h}, buf(w * h, 1.0) {}
 
-double &depth_buffer::operator()(int x, int y)
+double &depth_buffer::operator()(unsigned x, unsigned y)
 {
     if (x < 0 || x >= width || y < 0 || y >= height)
     {
@@ -19,16 +19,16 @@ template <class T>
 frame_buffer<T>::frame_buffer() : frame_buffer(0, 0) {}
 
 template <class T>
-frame_buffer<T>::frame_buffer(int w, int h) : width{w}, height{h}, buf(w * h * 4, 0) {}
+frame_buffer<T>::frame_buffer(unsigned w, unsigned h) : width{w}, height{h}, buf(w * h * 4, 0) {}
 
 template <class T>
-T *frame_buffer<T>::data()
+std::vector<T> &frame_buffer<T>::data()
 {
-    return buf.data();
+    return buf;
 }
 
 template <class T>
-T &frame_buffer<T>::operator()(int x, int y, int channel)
+T &frame_buffer<T>::operator()(unsigned x, unsigned y, unsigned channel)
 {
     if (x < 0 || x >= width || y < 0 || y >= height)
     {
@@ -38,7 +38,7 @@ T &frame_buffer<T>::operator()(int x, int y, int channel)
 }
 
 template <class T>
-void frame_buffer<T>::set_color(int x, int y, T r, T g, T b, T a)
+void frame_buffer<T>::set_color(unsigned x, unsigned y, T r, T g, T b, T a)
 {
     buf[(y * width + x) * 4 + 0] = r;
     buf[(y * width + x) * 4 + 1] = g;

@@ -72,7 +72,7 @@ vec operator/(const vec &v, double k)
     return res;
 }
 
-unsigned char *rasterizer::data()
+std::vector<unsigned char> &rasterizer::data()
 {
     return output_buf.data();
 }
@@ -130,7 +130,7 @@ void rasterizer::cull_face()
 
 void rasterizer::add_vec(double x, double y, double z, double w)
 {
-    vertices.push_back({x, y, z, w, r, g, b, a, 0, 0});
+    vertices.push_back({x, y, z, w, r, g, b, a, s, t});
 }
 
 void rasterizer::set_color(double _r, double _g, double _b, double _a)
@@ -139,6 +139,28 @@ void rasterizer::set_color(double _r, double _g, double _b, double _a)
     g = _g;
     b = _b;
     a = _a;
+}
+
+void rasterizer::set_texcoord(double _s, double _t)
+{
+    s = _s;
+    t = _t;
+}
+
+void rasterizer::load_texture(std::string &filename)
+{
+    lodepng::decode(texture.data(), texture.width, texture.height, filename, LCT_RGBA, 8);
+    lodepng::encode("fAAAe.png", texture.data(), texture.width, texture.height, LCT_RGBA, 8);
+}
+
+void rasterizer::enable_texture()
+{
+    texture_enabled = true;
+}
+
+void rasterizer::disable_texture()
+{
+    texture_enabled = false;
 }
 
 template <class Operation>
@@ -165,10 +187,37 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         }
     }
 
-    // "over" operator
     int x = v[0], y = v[1];
-    auto rs = v[4], gs = v[5], bs = v[6], as = v[7];
-    auto rd = render_buf(x, y, 0), gd = render_buf(x, y, 1), bd = render_buf(x, y, 2), ad = render_buf(x, y, 3);
+    double rd = render_buf(x, y, 0);
+    double gd = render_buf(x, y, 1);
+    double bd = render_buf(x, y, 2);
+    double ad = render_buf(x, y, 3);
+    double rs, gs, bs, as;
+    if (texture_enabled)
+    {
+        // TODO: round ?? there are some differences...
+        double s = v[8], t = v[9];
+        int x = static_cast<int>(std::round(s * texture.width)) % texture.width;
+        int y = static_cast<int>(std::round(t * texture.height)) % texture.height;
+
+        rs = texture(x, y, 0);
+        gs = texture(x, y, 1);
+        bs = texture(x, y, 2);
+        as = texture(x, y, 3) / 255.0;
+
+        if (srgb_enabled)
+        {
+            rs = srgb_to_linear(rs / 255.0);
+            gs = srgb_to_linear(gs / 255.0);
+            bs = srgb_to_linear(bs / 255.0);
+        }
+    }
+    else
+    {
+        rs = v[4], gs = v[5], bs = v[6], as = v[7];
+    }
+
+    // "over" operator
     auto a = as + ad * (1 - as);
     auto ws = as / a, wd = (ad * (1 - as)) / a;
     auto r = ws * rs + wd * rd;
@@ -337,9 +386,10 @@ vec &rasterizer::ith_vec(int i)
 
 void rasterizer::output()
 {
-    for (int y = 0; y < output_buf.height; ++y)
+    int h = output_buf.height, w = output_buf.height;
+    for (int y = 0; y < h; ++y)
     {
-        for (int x = 0; x < output_buf.width; ++x)
+        for (int x = 0; x < w; ++x)
         {
             double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
             for (int i = 0; i < fsaa_level; ++i)

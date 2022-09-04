@@ -6,10 +6,10 @@
 class depth_buffer
 {
 public:
-    int width, height;
+    unsigned width, height;
     depth_buffer();
-    depth_buffer(int w, int h);
-    double &operator()(int x, int y);
+    depth_buffer(unsigned w, unsigned h);
+    double &operator()(unsigned x, unsigned y);
 
 private:
     std::vector<double> buf;
@@ -19,12 +19,12 @@ template <class T>
 class frame_buffer
 {
 public:
-    int width, height;
+    unsigned width, height;
     frame_buffer();
-    frame_buffer(int w, int h);
-    T *data();
-    T &operator()(int x, int y, int channel);
-    void set_color(int x, int y, T r, T g, T b, T a);
+    frame_buffer(unsigned w, unsigned h);
+    std::vector<T> &data();
+    T &operator()(unsigned x, unsigned y, unsigned channel);
+    void set_color(unsigned x, unsigned y, T r, T g, T b, T a);
     void save(std::string &filename);
 
 private:

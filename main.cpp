@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
         {
             int i1, i2, i3;
             ss >> i1 >> i2 >> i3;
+            raster.disable_texture();
             raster.draw_triangle(i1, i2, i3);
         }
         else if (cmd == "depth")
@@ -57,7 +58,6 @@ int main(int argc, char *argv[])
             // TODO: after sRGB
             double r, g, b, a;
             ss >> r >> g >> b >> a;
-            std::cout << "seta" << a << '\n';
             raster.set_color(r, g, b, a);
         }
         else if (cmd == "hyp")
@@ -79,10 +79,29 @@ int main(int argc, char *argv[])
         {
             raster.cull_face();
         }
+        else if (cmd == "texcoord")
+        {
+            double u, v;
+            ss >> u >> v;
+            raster.set_texcoord(u, v);
+        }
+        else if (cmd == "texture")
+        {
+            std::string filename;
+            ss >> filename;
+            raster.load_texture(filename);
+        }
+        else if (cmd == "trit")
+        {
+            int i1, i2, i3;
+            ss >> i1 >> i2 >> i3;
+            raster.enable_texture();
+            raster.draw_triangle(i1, i2, i3);
+        }
     }
     raster.output();
-    int err;
-    if ((err = lodepng_encode_file(filename.c_str(), raster.data(), raster.width, raster.height, LCT_RGBA, 8)))
+    unsigned err;
+    if ((err = lodepng::encode(filename, raster.data(), raster.width, raster.height, LCT_RGBA, 8)))
     {
         std::cerr << lodepng_error_text(err) << '\n';
     };
