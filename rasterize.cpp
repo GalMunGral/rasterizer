@@ -212,14 +212,13 @@ void dda_scan(vec a, vec b, int i, Operation f)
 
 vec alpha_blend(vec src, vec dst)
 {
-    double as = src[3], ad = dst[3] * (1 - src[3]);
-    double a = as + ad;
-    double ws = as / a, wd = ad / a;
-    return {
-        (ws * src[0] + ws * dst[0]),
-        (ws * src[1] + ws * dst[1]),
-        (ws * src[2] + wd * src[2]),
-        a};
+    // "over" operator
+    auto a = src[3] + dst[3] * (1 - src[3]);
+    auto ws = src[3] / a, wd = (dst[3] * (1 - src[3])) / a;
+    auto r = ws * src[0] + wd * dst[0];
+    auto g = ws * src[1] + wd * dst[1];
+    auto b = ws * src[2] + wd * dst[2];
+    return {r, g, b, a};
 }
 
 void rasterizer::draw_pixel(vec v) // copy since it will be modified
@@ -238,12 +237,12 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         // TODO: this should only happen when drawing points
         return;
     }
-    vec color_src, color_dst;
-    color_dst = {
-        render_buf(x, y, 0),
-        render_buf(x, y, 1),
-        render_buf(x, y, 2),
-        render_buf(x, y, 3)};
+
+    vec color_src, color_dst = {
+                       render_buf(x, y, 0),
+                       render_buf(x, y, 1),
+                       render_buf(x, y, 2),
+                       render_buf(x, y, 3)};
 
     if (texture_enabled)
     {
@@ -251,32 +250,35 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         auto s = v[8], t = v[9];
         int x = static_cast<int>(s * texture.width + 0.5) % texture.width;
         int y = static_cast<int>(t * texture.height + 0.5) % texture.height;
-        double r = texture(x, y, 0);
-        double g = texture(x, y, 1);
-        double b = texture(x, y, 2);
-        double a = texture(x, y, 3) / 255.0;
+
+        double rs, gs, bs, as;
+        rs = texture(x, y, 0);
+        gs = texture(x, y, 1);
+        bs = texture(x, y, 2);
+        as = texture(x, y, 3) / 255.0;
+
         if (srgb_enabled)
         {
-            r = srgb_to_linear(r / 255.0);
-            g = srgb_to_linear(g / 255.0);
-            b = srgb_to_linear(b / 255.0);
+            rs = srgb_to_linear(rs / 255.0);
+            gs = srgb_to_linear(gs / 255.0);
+            bs = srgb_to_linear(bs / 255.0);
         }
-        color_src = {r, g, b, a};
+
+        color_src = {rs, gs, bs, as};
     }
     else
     {
+
         color_src = {v[4], v[5], v[6], v[7]};
     }
 
     vec c = alpha_blend(color_src, color_dst);
-
     if (depth_enabled)
     {
-        double z = v[2];
-        if (z >= -1.0 && z < depth_buf(x, y))
+        if (v[2] >= -1.0 && v[2] < depth_buf(v[0], v[1]))
         {
             render_buf.set_color(x, y, c[0], c[1], c[2], c[3]);
-            depth_buf(x, y) = z;
+            depth_buf(x, y) = v[2];
         }
     }
     else
