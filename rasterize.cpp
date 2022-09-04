@@ -210,6 +210,18 @@ void dda_scan(vec a, vec b, int i, Operation f)
     }
 }
 
+vec alpha_blend(vec src, vec dst)
+{
+    double as = src[3], ad = dst[3] * (1 - src[3]);
+    double a = as + ad;
+    double ws = as / a, wd = ad / a;
+    return {
+        (ws * src[0] + ws * dst[0]),
+        (ws * src[1] + ws * dst[1]),
+        (ws * src[2] + wd * src[2]),
+        a};
+}
+
 void rasterizer::draw_pixel(vec v) // copy since it will be modified
 {
     if (perspective_enabled)
@@ -226,53 +238,50 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
         // TODO: this should only happen when drawing points
         return;
     }
-    double rd = render_buf(x, y, 0);
-    double gd = render_buf(x, y, 1);
-    double bd = render_buf(x, y, 2);
-    double ad = render_buf(x, y, 3);
-    double rs, gs, bs, as;
+    vec color_src, color_dst;
+    color_dst = {
+        render_buf(x, y, 0),
+        render_buf(x, y, 1),
+        render_buf(x, y, 2),
+        render_buf(x, y, 3)};
+
     if (texture_enabled)
     {
         // TODO: round ?? there are some differences...
         auto s = v[8], t = v[9];
         int x = static_cast<int>(s * texture.width + 0.5) % texture.width;
         int y = static_cast<int>(t * texture.height + 0.5) % texture.height;
-
-        rs = texture(x, y, 0);
-        gs = texture(x, y, 1);
-        bs = texture(x, y, 2);
-        as = texture(x, y, 3) / 255.0;
-
+        double r = texture(x, y, 0);
+        double g = texture(x, y, 1);
+        double b = texture(x, y, 2);
+        double a = texture(x, y, 3) / 255.0;
         if (srgb_enabled)
         {
-            rs = srgb_to_linear(rs / 255.0);
-            gs = srgb_to_linear(gs / 255.0);
-            bs = srgb_to_linear(bs / 255.0);
+            r = srgb_to_linear(r / 255.0);
+            g = srgb_to_linear(g / 255.0);
+            b = srgb_to_linear(b / 255.0);
         }
+        color_src = {r, g, b, a};
     }
     else
     {
-        rs = v[4], gs = v[5], bs = v[6], as = v[7];
+        color_src = {v[4], v[5], v[6], v[7]};
     }
 
-    // "over" operator
-    auto a = as + ad * (1 - as);
-    auto ws = as / a, wd = (ad * (1 - as)) / a;
-    auto r = ws * rs + wd * rd;
-    auto g = ws * gs + wd * gd;
-    auto b = ws * bs + wd * bd;
+    vec c = alpha_blend(color_src, color_dst);
 
     if (depth_enabled)
     {
-        if (v[2] >= -1.0 && v[2] < depth_buf(v[0], v[1]))
+        double z = v[2];
+        if (z >= -1.0 && z < depth_buf(x, y))
         {
-            render_buf.set_color(x, y, r, g, b, a);
-            depth_buf(x, y) = v[2];
+            render_buf.set_color(x, y, c[0], c[1], c[2], c[3]);
+            depth_buf(x, y) = z;
         }
     }
     else
     {
-        render_buf.set_color(x, y, r, g, b, a);
+        render_buf.set_color(x, y, c[0], c[1], c[2], c[3]);
     }
 };
 
