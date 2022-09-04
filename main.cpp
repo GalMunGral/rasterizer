@@ -103,6 +103,15 @@ int main(int argc, char *argv[])
             int i;
             double size;
             ss >> size >> i;
+            raster.disable_texture();
+            raster.draw_point(i, size);
+        }
+        else if (cmd == "billboard")
+        {
+            int i;
+            double size;
+            ss >> size >> i;
+            raster.enable_texture();
             raster.draw_point(i, size);
         }
     }

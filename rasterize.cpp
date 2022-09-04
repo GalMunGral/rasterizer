@@ -171,6 +171,31 @@ void rasterizer::disable_texture()
     texture_enabled = false;
 }
 
+vec rasterizer::project(vec in)
+{
+    vec out(in);
+    if (srgb_enabled)
+    {
+        out[4] = srgb_to_linear(out[4] / 255.0);
+        out[5] = srgb_to_linear(out[5] / 255.0);
+        out[6] = srgb_to_linear(out[6] / 255.0);
+    }
+    auto w = out[3];
+    out[0] = (out[0] / w + 1) * render_buf.width / 2;
+    out[1] = (out[1] / w + 1) * render_buf.height / 2;
+    out[2] /= w;
+    out[3] = 1 / w;
+    if (perspective_enabled)
+    {
+        // TODO: there are some bugs...
+        for (size_t i = 4; i < out.size(); ++i)
+        {
+            out[i] /= w;
+        }
+    }
+    return out;
+}
+
 template <class Operation>
 void dda_scan(vec a, vec b, int i, Operation f)
 {
@@ -209,9 +234,9 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
     if (texture_enabled)
     {
         // TODO: round ?? there are some differences...
-        double s = v[8], t = v[9];
-        int x = static_cast<int>(std::round(s * texture.width)) % texture.width;
-        int y = static_cast<int>(std::round(t * texture.height)) % texture.height;
+        auto s = v[8], t = v[9];
+        int x = static_cast<int>(s * texture.width + 0.5) % texture.width;
+        int y = static_cast<int>(t * texture.height + 0.5) % texture.height;
 
         rs = texture(x, y, 0);
         gs = texture(x, y, 1);
@@ -253,10 +278,13 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
 
 void rasterizer::draw_point(int i, double size)
 {
+    auto w = size / 2;
     vec o = project(nth_vertex(i));
+    vec v1 = {o[0] - w, o[1] - w, o[2], o[3], o[4], o[5], o[6], o[7], 0, 0};
+    vec v2 = {o[0] - w, o[1] + w, o[2], o[3], o[4], o[5], o[6], o[7], 0, 1};
     // this might cause points to be off-screen
-    dda_scan(o + vec{-size / 2.0, +size / 2.0}, o + vec{-size / 2, -size / 2.0}, 1, [&](vec l)
-             { dda_scan(l, l + vec{size}, 0, [&](vec p)
+    dda_scan(v1, v2, 1, [&](vec l)
+             { dda_scan(l, l + vec{size, 0, 0, 0, 0, 0, 0, 0, 1, 0}, 0, [&](vec p)
                         { draw_pixel(p); }); });
 }
 
@@ -290,31 +318,6 @@ inline bool clipped(vec &v)
             v[0] < -v[3] || v[0] > v[3] ||
             v[1] < -v[3] || v[1] > v[3] ||
             v[2] < -v[3] || v[2] > v[3]);
-}
-
-vec rasterizer::project(vec in)
-{
-    vec out(in);
-    if (srgb_enabled)
-    {
-        out[4] = srgb_to_linear(out[4] / 255.0);
-        out[5] = srgb_to_linear(out[5] / 255.0);
-        out[6] = srgb_to_linear(out[6] / 255.0);
-    }
-    auto w = out[3];
-    out[0] = (out[0] / w + 1) * render_buf.width / 2;
-    out[1] = (out[1] / w + 1) * render_buf.height / 2;
-    out[2] /= w;
-    out[3] = 1 / w;
-    if (perspective_enabled)
-    {
-        // TODO: there are some bugs...
-        for (size_t i = 4; i < out.size(); ++i)
-        {
-            out[i] /= w;
-        }
-    }
-    return out;
 }
 
 void rasterizer::draw_triangle(vec v1, vec v2, vec v3)
