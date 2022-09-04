@@ -130,6 +130,12 @@ int main(int argc, char *argv[])
             ss >> i1 >> i2;
             raster.draw_line(i1, i2);
         }
+        else if (cmd == "wuline")
+        {
+            int i1, i2;
+            ss >> i1 >> i2;
+            raster.draw_wuline(i1, i2);
+        }
     }
     raster.output();
     unsigned err;

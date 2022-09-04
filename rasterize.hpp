@@ -24,6 +24,7 @@ public:
     void draw_triangle(vec v1, vec v2, vec v3);
     void draw_triangle_clipped(vec v1, vec v2, vec v3, std::vector<vec> &clip);
     void draw_line(int i1, int i2);
+    void draw_wuline(int i1, int i2);
     void enable_depth();
     void enable_srgb();
     void enable_perspective();

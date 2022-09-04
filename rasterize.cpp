@@ -467,6 +467,25 @@ void rasterizer::draw_line(int i1, int i2)
                 draw_pixel(p); });
 }
 
+void rasterizer::draw_wuline(int i1, int i2)
+{
+    // TODO: only rgb??
+    // TODO: what about color
+    auto v1 = project(nth_vertex(i1)), v2 = project(nth_vertex(i2));
+    auto d0 = std::abs(v1[0] - v2[0]), d1 = std::abs(v1[1] - v2[1]);
+    int i = d0 > d1 ? 0 : 1, j = i ^ 1;
+    dda_scan(v1, v2, i, [&](vec p)
+             {
+                 auto x = p[j];
+                 auto d = x - std::floor(x);
+                 p[j] = std::floor(x);
+                 p[7] = 1 - d;
+                 draw_pixel(p);
+                 p[j] = std::ceil(x);
+                 p[7] = d;
+                 draw_pixel(p); });
+}
+
 void rasterizer::output()
 {
     int out_height = output_buf.height, out_width = output_buf.width;
