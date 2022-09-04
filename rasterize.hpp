@@ -11,7 +11,7 @@ public:
     int width = 0, height = 0;
     void resize(int w, int h);
     void add_vec(double x, double y, double z, double w);
-    void set_color(double r, double g, double b);
+    void set_color(double r, double g, double b, double a);
     void output();
     unsigned char *data();
     void draw_pixel(vec pixel);
@@ -25,7 +25,7 @@ public:
     void cull_face();
 
 private:
-    double r = 0xff, g = 0xff, b = 0xff;
+    double r = 255.0, g = 255.0, b = 255.0, a = 1.0;
     int fsaa_level = 1;
     bool depth_enabled;
     bool srgb_enabled;

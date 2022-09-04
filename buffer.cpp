@@ -2,16 +2,6 @@
 #include <stdexcept>
 #include "buffer.hpp"
 
-inline unsigned char hex(char c)
-{
-    return isdigit(c) ? c - '0' : c - 'a' + 10;
-}
-
-inline unsigned char byte(std::string &s, int i)
-{
-    return hex(s[i]) << 4 | hex(s[i + 1]);
-}
-
 depth_buffer::depth_buffer() : depth_buffer(0, 0) {}
 
 depth_buffer::depth_buffer(int w, int h) : width{w}, height{h}, buf(w * h, 1.0) {}
@@ -55,12 +45,5 @@ void frame_buffer<T>::set_color(int x, int y, T r, T g, T b, T a)
     buf[(y * width + x) * 4 + 2] = b;
     buf[(y * width + x) * 4 + 3] = a;
 }
-
-template <class T>
-void frame_buffer<T>::set_color(int x, int y, std::string &hex_color)
-{
-    set_color(x, y, byte(hex_color, 1), byte(hex_color, 3), byte(hex_color, 5), 0xff);
-}
-
 template class frame_buffer<double>;
 template class frame_buffer<unsigned char>;

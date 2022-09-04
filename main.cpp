@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
         {
             double r, g, b;
             ss >> r >> g >> b;
-            raster.set_color(r, g, b);
+            raster.set_color(r, g, b, 1.0);
         }
         else if (cmd == "tri")
         {
@@ -51,6 +51,14 @@ int main(int argc, char *argv[])
         else if (cmd == "sRGB")
         {
             raster.enable_srgb();
+        }
+        else if (cmd == "rgba")
+        {
+            // TODO: after sRGB
+            double r, g, b, a;
+            ss >> r >> g >> b >> a;
+            std::cout << "seta" << a << '\n';
+            raster.set_color(r, g, b, a);
         }
         else if (cmd == "hyp")
         {

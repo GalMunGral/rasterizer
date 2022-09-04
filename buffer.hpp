@@ -25,7 +25,6 @@ public:
     T *data();
     T &operator()(int x, int y, int channel);
     void set_color(int x, int y, T r, T g, T b, T a);
-    void set_color(int x, int y, std::string &hex_color);
     void save(std::string &filename);
 
 private:

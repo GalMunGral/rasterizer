@@ -130,14 +130,15 @@ void rasterizer::cull_face()
 
 void rasterizer::add_vec(double x, double y, double z, double w)
 {
-    vertices.push_back({x, y, z, w, r, g, b, 0xff, 0, 0});
+    vertices.push_back({x, y, z, w, r, g, b, a, 0, 0});
 }
 
-void rasterizer::set_color(double _r, double _g, double _b)
+void rasterizer::set_color(double _r, double _g, double _b, double _a)
 {
     r = _r;
     g = _g;
     b = _b;
+    a = _a;
 }
 
 template <class Operation>
@@ -156,6 +157,7 @@ void dda_scan(vec a, vec b, int i, Operation f)
 
 void rasterizer::draw_pixel(vec v) // copy since it will be modified
 {
+    // std::cout << v << '\n';
     if (perspective_enabled)
     {
         for (size_t i = 4; i < v.size(); ++i)
@@ -163,17 +165,28 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
             v[i] /= v[3];
         }
     }
+    int x = v[0], y = v[1];
+    auto rs = v[4], gs = v[5], bs = v[6], as = v[7];
+    auto rd = render_buf(x, y, 0), gd = render_buf(x, y, 1), bd = render_buf(x, y, 2), ad = render_buf(x, y, 3);
+    auto a = as + ad * (1 - as);
+    // std::cout << as << ',' << ad << ',' << a << '\n';
+    auto ws = as / a, wd = (ad * (1 - as)) / a;
+    auto r = ws * rs + wd * rd;
+    auto g = ws * gs + wd * gd;
+    auto b = ws * bs + wd * bd;
+
+    std::cout << "computed" << a << '\n';
     if (depth_enabled)
     {
         if (v[2] >= -1.0 && v[2] < depth_buf(v[0], v[1]))
         {
-            render_buf.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
-            depth_buf(v[0], v[1]) = v[2];
+            render_buf.set_color(x, y, r, g, b, a);
+            depth_buf(x, y) = v[2];
         }
     }
     else
     {
-        render_buf.set_color(v[0], v[1], v[4], v[5], v[6], v[7]);
+        render_buf.set_color(x, y, r, g, b, a);
     }
 };
 
@@ -356,6 +369,7 @@ void rasterizer::output()
                 g = linear_to_srgb(g) * 255.0;
                 b = linear_to_srgb(b) * 255.0;
             }
+            a *= 255.0;
             output_buf.set_color(x, y, r, g, b, a);
         }
     }
