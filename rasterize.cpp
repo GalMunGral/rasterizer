@@ -474,6 +474,7 @@ void rasterizer::draw_point(int i, double size)
 void rasterizer::output()
 {
     int out_height = output_buf.height, out_width = output_buf.width;
+    std::cout << out_height << ',' << out_width;
     for (int x = 0; x < out_width; ++x)
     {
         for (int y = 0; y < out_height; ++y)
@@ -506,6 +507,7 @@ void rasterizer::output()
                 b = linear_to_srgb(b) * 255.0;
             }
             a *= 255.0;
+            std::cout << x << ',' << y << r << ',' << g << ',' << b << '\n';
             output_buf.set_color(x, y, r, g, b, a);
         }
     }
