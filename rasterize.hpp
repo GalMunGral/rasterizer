@@ -1,9 +1,17 @@
+#include <iostream>
+#include <cmath>
+#include <map>
+#include <utility>
+#include <vector>
+#include <queue>
+#include <array>
 #include <vector>
 #include <stdexcept>
 #include "buffer.hpp"
 
 using vec = std::vector<double>;
 using mat = std::vector<std::vector<double>>;
+using tri = std::array<vec, 3>;
 
 #define TEXTURE_SIZE 512
 
@@ -21,8 +29,6 @@ public:
     void draw_pixel(vec pixel);
     void draw_point(int i, double size);
     void draw_triangle(int i1, int i2, int i3);
-    void draw_triangle(vec v1, vec v2, vec v3);
-    void draw_triangle_clipped(vec v1, vec v2, vec v3, std::vector<vec> &clip);
     void draw_line(int i1, int i2);
     void draw_wuline(int i1, int i2);
     void enable_depth();
@@ -52,9 +58,9 @@ private:
     frame_buffer<double> render_buf;
     depth_buffer depth_buf;
     std::vector<vec> vertices;
-    vec &nth_vertex(int i);
     std::vector<vec> clip_planes;
-    bool visible(const vec vertex, const std::vector<vec> &clip);
-    vec intersect(const vec v_in, const vec v_out, const std::vector<vec> &clip);
-    vec project(vec in);
+    vec &nth_vertex(int i);
+    vec project(vec p);
+    void draw_triangle_clipped(tri triangle);
+    void draw_triangle(tri triangle);
 };

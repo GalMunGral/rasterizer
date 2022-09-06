@@ -1,8 +1,3 @@
-#include <iostream>
-#include <cmath>
-#include <map>
-#include <utility>
-#include <vector>
 #include "rasterize.hpp"
 
 std::ostream &operator<<(std::ostream &os, const vec &v)
@@ -84,7 +79,14 @@ rasterizer::rasterizer()
     : width{0}, height{0},
       r{255.0}, g{255.0}, b{255.0}, a{1.0},
       s{0.0}, t{0.0},
-      fsaa_level{1}
+      fsaa_level{1},
+      clip_planes{
+          {1.0, 0, 0, 1.0},
+          {-1.0, 0, 0, 1.0},
+          {0, 1.0, 0, 1.0},
+          {0, -1.0, 0, 1.0},
+          {0, 0, 1.0, 1.0},
+          {0, 0, -1.0, 1.0}}
 {
     // std::cout << "FSAA::::" << fsaa_level;
 }
@@ -322,125 +324,119 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
     }
 };
 
-bool rasterizer::visible(const vec vertex, const std::vector<vec> &clip)
+void rasterizer::draw_triangle(tri triangle)
 {
-    return vertex[3] > 0 &&
-           std::all_of(clip.rbegin(), clip.rend(), [&](const vec &plane)
-                       { return plane * vertex >= 0; });
-}
+    for (auto &v : triangle)
+        v = project(v);
 
-vec rasterizer::intersect(const vec v_in, const vec v_out, const std::vector<vec> &clip)
-{
-    // need to search, not all results are valid
-    for (auto &plane : clip)
-    {
-        auto d_in = plane * v_in, d_out = plane * v_out;
-        if (d_out >= 0)
-            continue;
-        auto v = (d_out * v_in - d_in * v_out) / (d_out - d_in);
-        if (visible(v, clip))
-        {
-            // if on an edge or vertex of the frustum,
-            // the intersection point might be computed multiple times
-            // from different planes
-            return v;
-        }
-    }
-    return v_in;
-    throw std::logic_error("there must be one intersection point");
-}
-
-vec cross_product(vec a, vec b)
-{
-    return {
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0]};
-}
-
-void rasterizer::draw_triangle(vec v1, vec v2, vec v3)
-{
-    std::vector<vec> vertices{project(v1), project(v2), project(v3)};
-
-    sort(vertices.begin(), vertices.end(), [](vec &a, vec &b)
+    sort(triangle.begin(), triangle.end(), [](vec &a, vec &b)
          { return a[1] <= b[1]; });
 
     std::vector<vec> bound1, bound2;
-    dda_scan(vertices[0], vertices[2], 1, [&](vec &v)
+    dda_scan(triangle[0], triangle[2], 1, [&](vec &v)
              { bound1.push_back(v); });
-    dda_scan(vertices[0], vertices[1], 1, [&](vec &v)
+    dda_scan(triangle[0], triangle[1], 1, [&](vec &v)
              { bound2.push_back(v); });
-    dda_scan(vertices[1], vertices[2], 1, [&](vec &v)
+    dda_scan(triangle[1], triangle[2], 1, [&](vec &v)
              { bound2.push_back(v); });
 
     assert(bound1.size() == bound2.size());
-
-    for (size_t i = 0; i < bound1.size(); ++i)
+    auto n = bound1.size();
+    for (size_t i = 0; i < n; ++i)
     {
         dda_scan(bound1[i], bound2[i], 0, [&](vec v)
                  { draw_pixel(v); });
     }
 }
 
-void rasterizer::draw_triangle_clipped(vec v1, vec v2, vec v3, std::vector<vec> &clip)
+vec intersect(const vec &p1, const vec &p2, const vec &plane)
 {
-    std::vector<vec> out, in;
-    for (auto &v : {v1, v2, v3})
+    auto d1 = plane * p1, d2 = plane * p2;
+    return (d2 * p1 - d1 * p2) / (d2 - d1);
+}
+
+void rasterizer::draw_triangle_clipped(tri triangle)
+{
+    std::queue<std::array<vec, 3>> queue;
+    queue.push(triangle);
+
+    // TODO: check w > 0
+
+    // use one clip plane at a time
+    for (vec &plane : clip_planes)
     {
-        (visible(v, clip) ? in : out).push_back(v);
+        // clip all triangles
+        auto n = queue.size();
+        while (n--)
+        {
+            auto triangle = queue.front();
+            queue.pop();
+
+            std::vector<vec> out, in;
+            for (auto &v : triangle)
+            {
+                if (plane * v >= 0)
+                    in.push_back(v);
+                else
+                    out.push_back(v);
+            }
+
+            if (in.size() == 3)
+            {
+                queue.push(triangle);
+            }
+            else if (in.size() == 2)
+            {
+                auto v1 = intersect(in[0], out[0], plane);
+                auto v2 = intersect(in[1], out[0], plane);
+                queue.push({in[0], in[1], v1});
+                queue.push({v1, v2, in[1]});
+            }
+            else if (in.size() == 1)
+            {
+                auto v1 = intersect(in[0], out[0], plane);
+                auto v2 = intersect(in[0], out[1], plane);
+                queue.push({v1, v2, in[0]});
+            }
+        }
     }
-    if (out.size() == 3)
+
+    while (queue.size())
     {
-        return;
+        auto triangle = queue.front();
+        queue.pop();
+        draw_triangle(triangle);
     }
-    if (out.size() == 2)
-    {
-        auto v1 = intersect(in[0], out[0], clip);
-        auto v2 = intersect(in[0], out[1], clip);
-        draw_triangle(v1, v2, in[0]);
-    }
-    else if (out.size() == 1)
-    {
-        auto v1 = intersect(in[0], out[0], clip);
-        auto v2 = intersect(in[1], out[0], clip);
-        draw_triangle(in[0], in[1], v1);
-        draw_triangle(in[1], v1, v2);
-    }
-    else
-    {
-        draw_triangle(v1, v2, v3);
-    }
+}
+
+vec normal(const tri &triangle)
+{
+    vec a = triangle[1] - triangle[0];
+    vec b = triangle[2] - triangle[1];
+    return {
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]};
 }
 
 void rasterizer::draw_triangle(int i1, int i2, int i3)
 {
-    auto v1 = nth_vertex(i1), v2 = nth_vertex(i2), v3 = nth_vertex(i3);
+    tri triangle = {nth_vertex(i1),
+                    nth_vertex(i2),
+                    nth_vertex(i3)};
 
-    auto normal = cross_product(v2 - v1, v3 - v2);
-    if (cull_enabled && normal[2] >= 0)
-    {
-        // facing down (+z direction)
+    // facing down (+z direction)
+    if (cull_enabled && normal(triangle)[2] >= 0)
         return;
-    }
 
-    if (frustum_clipping_enabled)
+    // TODO: always?
+    if (frustum_clipping_enabled || true)
     {
-        std::vector<vec> frustum{
-            {1.0, 0, 0, 1.0},
-            {-1.0, 0, 0, 1.0},
-            {0, 1.0, 0, 1.0},
-            {0, -1.0, 0, 1.0},
-            {0, 0, 1.0, 1.0},
-            {0, 0, -1.0, 1.0}};
-        draw_triangle_clipped(v1, v2, v3, frustum);
-    }
-    else if (clip_planes.size() > 0)
-    {
-        draw_triangle_clipped(v1, v2, v3, clip_planes);
+        draw_triangle_clipped(triangle);
     }
     else
     {
-        draw_triangle(v1, v2, v3);
+        draw_triangle(triangle);
     }
 }
 
