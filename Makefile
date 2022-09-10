@@ -16,18 +16,18 @@ program: main.o lodepng.o buffer.o rasterize.o
 
 submit: submission.tar
 
+test-submit: submit
+	rm -rf __test__
+	mkdir __test__
+	tar xf submission.tar -C __test__
+	cp test.sh __test__
+	cd __test__ && $(MAKE) build
+
 %.o: %.cpp
 	$(CC) -c $(CFLAGS) $^ -o $@
 
 %.tar:
-	tar cf $@ *.cpp *.hpp *.h Makefile 
-
-test: submit
-	rm -rf __test__
-	mkdir __test__
-	tar xf submission.tar -C __test__
-	cp $(file) __test__
-	cd __test__ && $(MAKE) run file=$(file)
+	tar cf $@ *.cpp *.hpp *.h Makefile implemented.txt
 
 clean:
 	rm -rf *.o program *.tar *.png *.txt __test__ 
