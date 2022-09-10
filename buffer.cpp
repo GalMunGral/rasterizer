@@ -8,7 +8,7 @@ depth_buffer::depth_buffer(unsigned w, unsigned h) : width{w}, height{h}, buf(w 
 
 double &depth_buffer::operator()(unsigned x, unsigned y)
 {
-    if (x < 0 || x >= width || y < 0 || y >= height)
+    if (x >= width || y >= height)
     {
         throw std::out_of_range("pixel index out of range");
     }
@@ -30,7 +30,7 @@ std::vector<T> &frame_buffer<T>::data()
 template <class T>
 T &frame_buffer<T>::operator()(unsigned x, unsigned y, unsigned channel)
 {
-    if (x < 0 || x >= width || y < 0 || y >= height)
+    if (x >= width || y >= height)
     {
         throw std::out_of_range("pixel index out of range");
     }

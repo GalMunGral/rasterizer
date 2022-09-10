@@ -265,7 +265,7 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
     }
 
     unsigned x = v[0], y = v[1];
-    if (x < 0 || x >= render_buf.width || y < 0 || y >= render_buf.height)
+    if (x >= render_buf.width || y >= render_buf.height)
     {
         // TODO: this should only happen when drawing points
         return;
@@ -321,7 +321,7 @@ void rasterizer::draw_pixel(vec v) // copy since it will be modified
     {
         render_buf.set_color(x, y, c[0], c[1], c[2], c[3]);
     }
-};
+}
 
 void rasterizer::draw_triangle(tri triangle)
 {
