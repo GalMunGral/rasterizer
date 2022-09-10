@@ -20,7 +20,7 @@ submit: submission.tar
 	$(CC) -c $(CFLAGS) $^ -o $@
 
 %.tar:
-	tar cf $@ -X .gitignore --exclude-vcs .
+	tar cf $@ *.cpp *.hpp *.h Makefile 
 
 test: submit
 	rm -rf __test__
