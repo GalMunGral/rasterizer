@@ -1,9 +1,0 @@
-{
-    "configurations": [
-        {
-            "name": "Mac",
-            "cppStandard": "c++17"
-        }
-    ],
-    "version": 1
-}

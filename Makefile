@@ -30,4 +30,4 @@ test: submit
 	cd __test__ && $(MAKE) run file=$(file)
 
 clean:
-	rm -rf *.o program *.tar __test__ 
+	rm -rf *.o program *.tar *.png *.txt __test__ 
