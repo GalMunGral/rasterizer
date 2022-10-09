@@ -180,7 +180,9 @@ void rasterizer::set_texcoord(double _s, double _t)
 
 void rasterizer::load_texture(std::string &filename)
 {
-    lodepng::decode(texture.data(), texture.width, texture.height, filename, LCT_RGBA, 8);
+    std::cout << filename << std::endl;
+    // TODO TODO
+    // lodepng::decode(texture.data(), texture.width, texture.height, filename, LCT_RGBA, 8);
 }
 
 void rasterizer::enable_texture()

@@ -2,21 +2,41 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
+#include <emscripten/fetch.h>
+#include <SDL.h>
 #include "rasterize.hpp"
 
 rasterizer raster;
 std::string filename;
 
-int main(int argc, char *argv[])
+SDL_Surface *screen;
+
+void drawRandomPixels()
 {
-    if (argc < 2)
-    {
-        std::cerr << "No filename specified\n";
-        return -1;
-    }
-    std::ifstream file(argv[1]);
+    if (!screen) return;
+
+    if (SDL_MUSTLOCK(screen))
+        SDL_LockSurface(screen);
+
+    int n = raster.data().size();
+    for (int i = 0; i < n; ++i)
+        ((uint8_t *)screen->pixels)[i] = raster.data()[i];
+
+    if (SDL_MUSTLOCK(screen))
+        SDL_UnlockSurface(screen);
+
+    SDL_Flip(screen);
+}
+
+void downloadSucceeded(emscripten_fetch_t *fetch)
+{
+    // printf("Finished downloading %llu bytes from URL %s.\n", fetch->numBytes, fetch->url);
+    // The data is now available at fetch->data[0] through fetch->data[fetch->numBytes-1];
+    emscripten_fetch_close(fetch); // Free data associated with the fetch.
+    std::istringstream file(std::string(fetch->data, fetch->numBytes));
     for (std::string line; std::getline(file, line);)
     {
+        std::cout << line << std::endl;
         std::istringstream ss(line);
         std::string cmd;
         ss >> cmd;
@@ -24,6 +44,8 @@ int main(int argc, char *argv[])
         {
             int width, height;
             ss >> width >> height >> filename;
+            // TODO resize
+            screen = SDL_SetVideoMode(width, height, 32, SDL_SWSURFACE);
             raster.resize(width, height);
         }
         else if (cmd == "xyzw")
@@ -138,10 +160,27 @@ int main(int argc, char *argv[])
         }
     }
     raster.output();
-    unsigned err;
-    if ((err = lodepng::encode(filename, raster.data(), raster.width, raster.height, LCT_RGBA, 8)))
-    {
-        std::cerr << lodepng_error_text(err) << '\n';
-    };
+}
+
+void downloadFailed(emscripten_fetch_t *fetch)
+{
+    printf("Downloading %s failed, HTTP failure status code: %d.\n", fetch->url, fetch->status);
+    emscripten_fetch_close(fetch); // Also free data on failure.
+}
+
+int main(void)
+{
+    SDL_Init(SDL_INIT_VIDEO);
+
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "GET");
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    attr.onsuccess = downloadSucceeded;
+    attr.onerror = downloadFailed;
+    emscripten_fetch(&attr, "inputs/wuline.txt");
+
+    emscripten_set_main_loop(drawRandomPixels, 60, 1);
+
     return 0;
 }

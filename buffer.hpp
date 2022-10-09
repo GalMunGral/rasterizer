@@ -1,7 +1,5 @@
 #pragma once
 #include <vector>
-#include "lodepng.h"
-#define cimg_display 0
 
 class depth_buffer
 {

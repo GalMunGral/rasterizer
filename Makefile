@@ -1,27 +1,12 @@
 .PHONY: build, run, submit, test, clean
 
-CC = g++
-CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3
+CC = emcc
+CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3 -sFETCH
 
-debug: CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O0 -g
-debug: program
+build: index.html
 
-run: program
-	./program $(file)
-
-build: program
-
-program: main.o lodepng.o buffer.o rasterize.o
+index.html: main.o buffer.o rasterize.o
 	${CC} $(CFLAGS) $^ -o $@
-
-submit: submission.tar
-
-test-submit: submit
-	rm -rf __test__
-	mkdir __test__
-	tar xf submission.tar -C __test__
-	cp test.sh __test__
-	cd __test__ && $(MAKE) build
 
 %.o: %.cpp
 	$(CC) -c $(CFLAGS) $^ -o $@
@@ -30,4 +15,4 @@ test-submit: submit
 	tar cf $@ *.cpp *.hpp *.h Makefile implemented.txt
 
 clean:
-	rm -rf *.o program *.tar *.png *.txt __test__ 
+	rm -rf *.o *.wasm *.js

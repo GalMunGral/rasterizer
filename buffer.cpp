@@ -40,9 +40,9 @@ T &frame_buffer<T>::operator()(unsigned x, unsigned y, unsigned channel)
 template <class T>
 void frame_buffer<T>::set_color(unsigned x, unsigned y, T r, T g, T b, T a)
 {
-    buf[(y * width + x) * 4 + 0] = r;
+    buf[(y * width + x) * 4 + 0] = b;
     buf[(y * width + x) * 4 + 1] = g;
-    buf[(y * width + x) * 4 + 2] = b;
+    buf[(y * width + x) * 4 + 2] = r;
     buf[(y * width + x) * 4 + 3] = a;
 }
 template class frame_buffer<double>;
