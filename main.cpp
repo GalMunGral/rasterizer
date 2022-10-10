@@ -11,6 +11,9 @@ std::string filename;
 
 SDL_Surface *screen;
 
+// HACK
+int scale;
+
 void drawRandomPixels()
 {
     if (!screen) return;
@@ -32,18 +35,29 @@ void downloadSucceeded(emscripten_fetch_t *fetch)
 {
     // printf("Finished downloading %llu bytes from URL %s.\n", fetch->numBytes, fetch->url);
     // The data is now available at fetch->data[0] through fetch->data[fetch->numBytes-1];
+    std::stringstream file;
+    file << fetch->data;
     emscripten_fetch_close(fetch); // Free data associated with the fetch.
-    std::istringstream file(std::string(fetch->data, fetch->numBytes));
+
     for (std::string line; std::getline(file, line);)
     {
-        std::cout << line << std::endl;
         std::istringstream ss(line);
         std::string cmd;
         ss >> cmd;
+        
+        if (cmd.size()) std::cout << line << std::endl;
+
         if (cmd == "png")
         {
             int width, height;
             ss >> width >> height >> filename;
+
+            scale = (500 + height - 1) / height;
+            width *= scale;
+            height *= scale;
+
+            std::cout << width << height << std::endl;
+
             // TODO resize
             screen = SDL_SetVideoMode(width, height, 32, SDL_SWSURFACE);
             raster.resize(width, height);
@@ -52,6 +66,12 @@ void downloadSucceeded(emscripten_fetch_t *fetch)
         {
             double x, y, z, w;
             ss >> x >> y >> z >> w;
+
+            x *= scale;
+            y *= scale;
+            z *= scale;
+            w *= scale;
+
             raster.add_vec(x, y, z, w);
         }
         else if (cmd == "rgb")
@@ -125,6 +145,9 @@ void downloadSucceeded(emscripten_fetch_t *fetch)
             int i;
             double size;
             ss >> size >> i;
+
+            size *= scale;
+
             raster.disable_texture();
             raster.draw_point(i, size);
         }
@@ -133,6 +156,9 @@ void downloadSucceeded(emscripten_fetch_t *fetch)
             int i;
             double size;
             ss >> size >> i;
+
+            size *= scale;
+
             raster.enable_texture();
             raster.draw_point(i, size);
         }
@@ -144,6 +170,12 @@ void downloadSucceeded(emscripten_fetch_t *fetch)
         {
             double p1, p2, p3, p4;
             ss >> p1 >> p2 >> p3 >> p4;
+
+            p1 *= scale;
+            p2 *= scale;
+            p3 *= scale;
+            p4 *= scale;
+            
             raster.clip(p1, p2, p3, p4);
         }
         else if (cmd == "line")
@@ -168,9 +200,20 @@ void downloadFailed(emscripten_fetch_t *fetch)
     emscripten_fetch_close(fetch); // Also free data on failure.
 }
 
+EM_JS(const char *, get_input_filename, (), {
+    const filename = new URLSearchParams(location.search).get('file');
+    const jsString = 'inputs/' + filename;
+    const lengthBytes = lengthBytesUTF8(jsString) + 1;
+    const stringOnWasmHeap = _malloc(lengthBytes);
+    stringToUTF8(jsString, stringOnWasmHeap, lengthBytes);
+    return stringOnWasmHeap;
+})
+
 int main(void)
 {
     SDL_Init(SDL_INIT_VIDEO);
+
+    const char *filenmae = get_input_filename();
 
     emscripten_fetch_attr_t attr;
     emscripten_fetch_attr_init(&attr);
@@ -178,7 +221,7 @@ int main(void)
     attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
     attr.onsuccess = downloadSucceeded;
     attr.onerror = downloadFailed;
-    emscripten_fetch(&attr, "inputs/wuline.txt");
+    emscripten_fetch(&attr, filenmae);
 
     emscripten_set_main_loop(drawRandomPixels, 60, 1);
 

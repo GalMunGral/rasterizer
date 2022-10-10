@@ -181,8 +181,12 @@ void rasterizer::set_texcoord(double _s, double _t)
 void rasterizer::load_texture(std::string &filename)
 {
     std::cout << filename << std::endl;
-    // TODO TODO
     // lodepng::decode(texture.data(), texture.width, texture.height, filename, LCT_RGBA, 8);
+    // TODO: load png
+    texture.data() = std::vector<uint8_t>(10000);
+    for (int i = 0; i < 10000; ++i) texture.data()[i] = rand() % 256;
+    texture.height = 50;
+    texture.width = 50;
 }
 
 void rasterizer::enable_texture()
@@ -340,7 +344,7 @@ void rasterizer::draw_triangle(tri triangle)
              { bound2.push_back(v); });
     dda_scan(triangle[1], triangle[2], 1, [&](vec &v)
              { bound2.push_back(v); });
-
+            
     assert(bound1.size() == bound2.size());
     auto n = bound1.size();
     for (size_t i = 0; i < n; ++i)

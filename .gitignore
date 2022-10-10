@@ -1,7 +1,2 @@
 .vscode
-__test__
 *.o
-*.png
-*.tar
-*.tar.*
-program
