@@ -1,5 +1,5 @@
 CC = emcc
-CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3 -sFETCH -sASSERTIONS -sINITIAL_MEMORY=134217728
+CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3 -sFETCH -sUSE_SDL -sASSERTIONS -sINITIAL_MEMORY=134217728
 
 build: index.html
 
