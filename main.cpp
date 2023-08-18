@@ -201,7 +201,7 @@ void downloadFailed(emscripten_fetch_t *fetch)
 }
 
 EM_JS(const char *, get_input_filename, (), {
-    const filename = new URLSearchParams(location.search).get('file');
+    const filename = new URLSearchParams(location.search).get('file') || 'billboard.txt';
     const jsString = 'inputs/' + filename;
     const lengthBytes = lengthBytesUTF8(jsString) + 1;
     const stringOnWasmHeap = _malloc(lengthBytes);
