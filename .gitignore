@@ -1,6 +1,6 @@
 .DS_Store
 .vscode
 *.o
-*.html
+index.html
 *.js
 *.wasm
