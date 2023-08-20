@@ -7,6 +7,8 @@ index.html: main.o buffer.o rasterize.o shell.html
 	mkdir -p docs
 	${CC} $(CFLAGS) $(filter-out %.html, $^) -o $@ --shell-file shell.html
 
+shell.html: ;
+
 %.o: %.cpp
 	$(CC) -c $(CFLAGS) $^ -o $@
 
