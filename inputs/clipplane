@@ -1,4 +1,4 @@
-png 120 120 hw1clipplane.png
+png 120 120 clipplane.png
 clipplane 0 0 -1 .5
 clipplane -1 -1 -1 1
 

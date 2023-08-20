@@ -1,6 +1,6 @@
-png 20 30 hw1fsaa4.png
+png 20 30 fsaa3.png
 sRGB
-fsaa 4
+fsaa 3
 
 rgb 255 0 0
 xyzw -12 -12 0 15

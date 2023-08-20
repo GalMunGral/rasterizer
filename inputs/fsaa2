@@ -1,4 +1,6 @@
-png 20 30 hw1req1.png
+png 20 30 fsaa2.png
+sRGB
+fsaa 2
 
 rgb 255 0 0
 xyzw -12 -12 0 15

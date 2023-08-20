@@ -1,4 +1,4 @@
-png 120 120 hw1point.png
+png 120 120 billboard.png
 depth
 
 rgb 255 0 0
@@ -19,12 +19,15 @@ xyzw  0.8 -0.6 1 1
 xyzw -0.8  0.1 0 1
 tri -1 -2 -3
 
+texture splat2.png
+
 rgb 0 0 0
 xyzw 0 0.15 .5 1
-point 62 -1
+billboard 62 -1
 rgb 255 255 255
 xyzw 0 0.15 .4 1
 point 2.5 -1
+
 
 rgb 255 0 187
 xyzw -1    -0.92 -.5 1
@@ -37,11 +40,11 @@ xyzw  0.5  -0.92 -.5 1
 xyzw  0.75 -0.92 -.5 1
 xyzw  1    -0.92 -.5 1
 point 10 -9
-point 9.5 -8
+billboard 9.5 -8
 point 8 -7
 point 5.3 -6
 point 2 -5
 point 1 -4
 point 0.5 -3
 point 0 -2
-point 20 -1
+billboard 20 -1

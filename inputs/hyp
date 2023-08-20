@@ -1,4 +1,4 @@
-png 256 256 hw1hyptex.png
+png 120 120 hyp.png
 sRGB
 hyp
 depth
@@ -20,17 +20,16 @@ xyzw -3.0 0.1 2.0 3.0
 tri 5 6 7
 tri 7 8 5
 
-texture splat2.png
-
 rgb 0 0 255
-texcoord 0 0
 xyzw -0.75 1.0 -1.0 1.0
-texcoord 0 2
 xyzw -0.75 -1.0 -1.0 1.0
+rgb 187 0 187
+xyzw -0.75 1.0 2.0 3.0
+xyzw -0.75 -1.0 2.0 3.0
 rgb 255 0 0
-texcoord 4 0
 xyzw -0.75 1.0 5.0 5.0
-texcoord 4 2
 xyzw -0.75 -1.0 5.0 5.0
-trit 9 10 11
-trit 10 11 12
+tri 9 10 11
+tri 10 11 12
+tri 11 12 13
+tri 12 13 14

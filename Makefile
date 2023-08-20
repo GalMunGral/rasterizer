@@ -3,9 +3,9 @@ CFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3 -sFETCH -sUSE_SDL -sASSERTIONS -
 
 build: index.html
 
-index.html: main.o buffer.o rasterize.o
+index.html: main.o buffer.o rasterize.o shell.html
 	mkdir -p docs
-	${CC} $(CFLAGS) $^ -o $@
+	${CC} $(CFLAGS) $(filter-out %.html, $^) -o $@ --shell-file shell.html
 
 %.o: %.cpp
 	$(CC) -c $(CFLAGS) $^ -o $@

@@ -201,7 +201,7 @@ void downloadFailed(emscripten_fetch_t *fetch)
 }
 
 EM_JS(const char *, get_input_filename, (), {
-    const filename = new URLSearchParams(location.search).get('file') || 'billboard.txt';
+    const filename = new URLSearchParams(location.search).get('file') || 'billboard';
     const jsString = 'inputs/' + filename;
     const lengthBytes = lengthBytesUTF8(jsString) + 1;
     const stringOnWasmHeap = _malloc(lengthBytes);
@@ -223,7 +223,7 @@ int main(void)
     attr.onerror = downloadFailed;
     emscripten_fetch(&attr, filenmae);
 
-    emscripten_set_main_loop(drawRandomPixels, 60, 1);
+    emscripten_set_main_loop(drawRandomPixels, 0, 1);
 
     return 0;
 }
